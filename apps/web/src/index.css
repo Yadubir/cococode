@@ -1,0 +1,193 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Base styles */
+:root {
+  --editor-bg: #1e1e1e;
+  --editor-sidebar: #252526;
+  --editor-active: #2d2d2d;
+  --editor-border: #3c3c3c;
+  --editor-text: #cccccc;
+  --editor-text-dim: #858585;
+  --editor-accent: #007acc;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  overflow: hidden;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--editor-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--editor-border);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Monaco Editor overrides */
+.monaco-editor {
+  font-family: 'Fira Code', 'Consolas', 'Monaco', monospace !important;
+}
+
+/* File tree styles */
+.file-tree-item {
+  @apply flex items-center gap-2 px-2 py-1 cursor-pointer rounded hover:bg-editor-active;
+}
+
+.file-tree-item.active {
+  @apply bg-editor-active;
+}
+
+/* Tab styles */
+.editor-tab {
+  @apply flex items-center gap-2 px-3 py-2 border-r border-editor-border cursor-pointer;
+  @apply hover:bg-editor-active transition-colors;
+}
+
+.editor-tab.active {
+  @apply bg-editor-bg border-t-2 border-t-editor-accent;
+}
+
+/* Activity bar */
+.activity-bar-item {
+  @apply flex items-center justify-center w-12 h-12 cursor-pointer;
+  @apply text-editor-text-dim hover:text-editor-text transition-colors;
+}
+
+.activity-bar-item.active {
+  @apply text-editor-text border-l-2 border-l-editor-accent;
+}
+
+/* Panel styles */
+.panel-header {
+  @apply flex items-center justify-between px-4 py-2 border-b border-editor-border;
+  @apply text-xs uppercase tracking-wider text-editor-text-dim;
+}
+
+/* Collaboration cursor */
+.collab-cursor {
+  @apply absolute pointer-events-none;
+  width: 2px;
+  animation: blink 1s infinite;
+}
+
+.collab-cursor-label {
+  @apply absolute -top-5 left-0 px-1 py-0.5 text-xs rounded whitespace-nowrap;
+  font-size: 10px;
+}
+
+/* Remote cursor decorations for Monaco */
+.remote-cursor {
+  position: relative;
+  border-left: 2px solid;
+  margin-left: -1px;
+}
+
+.remote-cursor::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -1px;
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 6px solid currentColor;
+}
+
+.remote-selection {
+  background-color: rgba(255, 107, 107, 0.2);
+}
+
+/* User colors */
+.remote-cursor.user-0 {
+  border-color: #FF6B6B;
+}
+
+.remote-cursor.user-1 {
+  border-color: #4ECDC4;
+}
+
+.remote-cursor.user-2 {
+  border-color: #45B7D1;
+}
+
+.remote-cursor.user-3 {
+  border-color: #96CEB4;
+}
+
+.remote-cursor.user-4 {
+  border-color: #FFEAA7;
+}
+
+.remote-cursor.user-5 {
+  border-color: #DDA0DD;
+}
+
+@keyframes blink {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0;
+  }
+}
+
+/* Terminal styles */
+.xterm {
+  padding: 8px;
+  height: 100%;
+}
+
+/* Focus styles */
+:focus-visible {
+  outline: 1px solid var(--editor-accent);
+  outline-offset: -1px;
+}
+
+/* Button styles */
+.btn {
+  @apply px-4 py-2 rounded font-medium transition-colors;
+}
+
+.btn-primary {
+  @apply bg-editor-accent text-white hover:bg-blue-600;
+}
+
+.btn-secondary {
+  @apply bg-editor-active text-editor-text hover:bg-editor-border;
+}
+
+/* Input styles */
+.input {
+  @apply w-full px-3 py-2 rounded border border-editor-border bg-editor-bg text-editor-text;
+  @apply focus:border-editor-accent focus:outline-none;
+}
+
+/* Status bar */
+.status-bar {
+  @apply flex items-center justify-between px-4 py-1 text-xs;
+  @apply bg-editor-accent text-white;
+}
