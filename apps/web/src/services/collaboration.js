@@ -82,8 +82,10 @@ export const joinDocument = (documentId, onUpdate, onAwarenessUpdate, onSync) =>
         if (docId === documentId && state) {
             const update = new Uint8Array(state);
             Y.applyUpdate(ydoc, update, 'remote');
-            onUpdate?.(ydoc);
+            // Call onSync FIRST to allow populating empty Y.js doc from editor
             onSync?.(ydoc);
+            // Then call onUpdate to sync the (now populated) Y.js to editor
+            onUpdate?.(ydoc);
         }
     });
 

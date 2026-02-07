@@ -16,15 +16,18 @@ function Terminal({ onClose, isMaximized, onToggleMaximize, onSessionChange }) {
     const [isConnecting, setIsConnecting] = useState(true);
     const [error, setError] = useState(null);
 
-    // Cleanup socket listeners
+    // Cleanup socket listeners and xterm disposables
     const cleanupListeners = useCallback(() => {
         const socket = getSocket();
-        if (socket) {
-            socketListenersRef.current.forEach(({ event, handler }) => {
-                socket.off(event, handler);
-            });
-            socketListenersRef.current = [];
-        }
+        socketListenersRef.current.forEach((item) => {
+            if (item.event && item.handler && socket) {
+                socket.off(item.event, item.handler);
+            }
+            if (item.dispose && typeof item.dispose.dispose === 'function') {
+                item.dispose.dispose();
+            }
+        });
+        socketListenersRef.current = [];
     }, []);
 
     // Initialize terminal
@@ -162,25 +165,26 @@ function Terminal({ onClose, isMaximized, onToggleMaximize, onSessionChange }) {
         socket.on('terminal:exit', handleExit);
         socket.on('terminal:error', handleError);
 
+        // Track xterm disposables for cleanup
+        const dataDisposable = xterm.onData((data) => {
+            socket.emit('terminal:input', { sessionId: sid, data });
+        });
+
+        const resizeDisposable = xterm.onResize(({ cols, rows }) => {
+            socket.emit('terminal:resize', { sessionId: sid, cols, rows });
+        });
+
         socketListenersRef.current = [
             { event: 'terminal:output', handler: handleOutput },
             { event: 'terminal:attached', handler: handleAttached },
             { event: 'terminal:exit', handler: handleExit },
             { event: 'terminal:error', handler: handleError },
+            { dispose: dataDisposable },
+            { dispose: resizeDisposable },
         ];
 
         // Attach to terminal session
         socket.emit('terminal:attach', { sessionId: sid });
-
-        // Send input to server (server echoes back, so don't echo locally)
-        xterm.onData((data) => {
-            socket.emit('terminal:input', { sessionId: sid, data });
-        });
-
-        // Handle resize
-        xterm.onResize(({ cols, rows }) => {
-            socket.emit('terminal:resize', { sessionId: sid, cols, rows });
-        });
     }, [cleanupListeners]);
 
     // Close terminal session

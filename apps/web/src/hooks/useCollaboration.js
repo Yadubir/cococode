@@ -29,8 +29,9 @@ export function useCollaboration(documentId, editorInstance) {
                     const currentContent = model.getValue();
                     const ytextContent = ytext.toString();
 
-                    // Only update if content differs (avoid infinite loop)
-                    if (currentContent !== ytextContent) {
+                    // Only update if content differs AND Y.js is not empty
+                    // (prevents clearing editor when server has no state)
+                    if (currentContent !== ytextContent && ytextContent.length > 0) {
                         // Set flag to prevent triggering Y.js update from editor change
                         isApplyingRemoteRef.current = true;
                         const position = editorInstance.getPosition();

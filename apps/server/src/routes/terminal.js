@@ -1,5 +1,8 @@
 const express = require('express');
-const { spawn, exec } = require('child_process');
+const pty = require('node-pty');
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
 const { authenticate } = require('../middleware/auth');
 const logger = require('../utils/logger');
 
@@ -8,25 +11,75 @@ const router = express.Router();
 // Store active terminal sessions
 const terminalSessions = new Map();
 
+const SHELL = process.env.SHELL || '/bin/bash';
+
 /**
- * Create a new terminal session (command-based)
+ * Create a new terminal session with PTY
  */
 router.post('/create', authenticate, (req, res) => {
     const sessionId = `${req.user.id}-${Date.now()}`;
+    const tempDir = path.join(os.tmpdir(), 'cococode', sessionId);
 
-    terminalSessions.set(sessionId, {
-        userId: req.user.id,
-        createdAt: new Date(),
-        cwd: process.env.HOME || process.cwd(),
-        history: [],
-    });
+    try {
+        if (!fs.existsSync(tempDir)) {
+            fs.mkdirSync(tempDir, { recursive: true });
+        }
+    } catch (err) {
+        logger.error('Failed to create session directory:', err);
+        return res.status(500).json({
+            success: false,
+            message: 'Failed to create execution environment'
+        });
+    }
 
-    logger.info(`Terminal session ${sessionId} created`);
+    try {
+        // Spawn PTY process
+        const ptyProcess = pty.spawn(SHELL, [], {
+            name: 'xterm-256color',
+            cols: 80,
+            rows: 24,
+            cwd: tempDir,
+            env: {
+                ...process.env,
+                TERM: 'xterm-256color',
+                COLORTERM: 'truecolor',
+            }
+        });
 
-    res.json({
-        success: true,
-        data: { sessionId },
-    });
+        const session = {
+            userId: req.user.id,
+            createdAt: new Date(),
+            pty: ptyProcess,
+            tempDir,
+            socket: null,
+            dataHandler: null
+        };
+
+        terminalSessions.set(sessionId, session);
+
+        // Handle PTY exit
+        ptyProcess.onExit(({ exitCode }) => {
+            logger.info(`Terminal session ${sessionId} exited with code ${exitCode}`);
+            if (session.socket) {
+                session.socket.emit('terminal:exit', { sessionId, code: exitCode });
+            }
+            terminalSessions.delete(sessionId);
+        });
+
+        logger.info(`Terminal session ${sessionId} created (PID: ${ptyProcess.pid})`);
+
+        res.json({
+            success: true,
+            data: { sessionId },
+        });
+    } catch (error) {
+        logger.error('Failed to create PTY session:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to create terminal session',
+            error: error.message
+        });
+    }
 });
 
 /**
@@ -34,7 +87,7 @@ router.post('/create', authenticate, (req, res) => {
  */
 router.post('/:sessionId/exec', authenticate, (req, res) => {
     const { sessionId } = req.params;
-    const { command } = req.body;
+    const { command, files } = req.body;
     const session = terminalSessions.get(sessionId);
 
     if (!session || session.userId !== req.user.id) {
@@ -45,61 +98,29 @@ router.post('/:sessionId/exec', authenticate, (req, res) => {
         });
     }
 
-    if (!command) {
-        return res.status(400).json({
-            success: false,
-            error: 'ValidationError',
-            message: 'Command is required',
-        });
-    }
-
-    // Handle cd command specially
-    if (command.trim().startsWith('cd ')) {
-        const path = command.trim().slice(3).trim();
-        const newPath = path.startsWith('/')
-            ? path
-            : require('path').resolve(session.cwd, path);
-
-        const fs = require('fs');
-        if (fs.existsSync(newPath) && fs.statSync(newPath).isDirectory()) {
-            session.cwd = newPath;
-            return res.json({
-                success: true,
-                data: { output: '', cwd: session.cwd },
-            });
-        } else {
-            return res.json({
-                success: true,
-                data: { output: `cd: no such directory: ${path}\n`, cwd: session.cwd },
-            });
+    // Write provided files to the session directory
+    if (files && Array.isArray(files)) {
+        try {
+            for (const file of files) {
+                if (file.name && typeof file.content === 'string') {
+                    const filePath = path.join(session.tempDir, file.name);
+                    fs.writeFileSync(filePath, file.content);
+                    logger.info(`Wrote file: ${filePath}`);
+                }
+            }
+        } catch (err) {
+            logger.error('Failed to write files to session dir:', err);
         }
     }
 
-    // Execute command
-    exec(command, {
-        cwd: session.cwd,
-        timeout: 30000,
-        maxBuffer: 1024 * 1024 * 10, // 10MB
-        env: {
-            ...process.env,
-            TERM: 'xterm-256color',
-        },
-    }, (error, stdout, stderr) => {
-        session.history.push(command);
+    if (command && session.pty) {
+        // Write command to PTY (PTY handles echo)
+        session.pty.write(`${command}\r`);
+    }
 
-        let output = '';
-        if (stdout) output += stdout;
-        if (stderr) output += stderr;
-        if (error && !stderr) output += error.message;
-
-        res.json({
-            success: true,
-            data: {
-                output,
-                cwd: session.cwd,
-                exitCode: error ? error.code || 1 : 0,
-            },
-        });
+    res.json({
+        success: true,
+        message: 'Command sent to terminal',
     });
 });
 
@@ -114,7 +135,6 @@ router.get('/sessions', authenticate, (req, res) => {
             userSessions.push({
                 sessionId,
                 createdAt: session.createdAt,
-                cwd: session.cwd,
             });
         }
     }
@@ -140,6 +160,23 @@ router.delete('/:sessionId', authenticate, (req, res) => {
         });
     }
 
+    try {
+        if (session.pty) {
+            session.pty.kill();
+        }
+    } catch (e) {
+        logger.warn(`Failed to kill PTY ${sessionId}:`, e);
+    }
+
+    // Cleanup temp dir
+    if (session.tempDir && session.tempDir.includes('cococode')) {
+        try {
+            fs.rmSync(session.tempDir, { recursive: true, force: true });
+        } catch (e) {
+            logger.error(`Failed to cleanup session dir ${session.tempDir}:`, e);
+        }
+    }
+
     terminalSessions.delete(sessionId);
 
     res.json({
@@ -160,115 +197,51 @@ const setupTerminalSocket = (socket) => {
             return;
         }
 
-        socket.emit('terminal:attached', { sessionId, cwd: session.cwd });
+        // Store socket reference
+        session.socket = socket;
+
+        // Set up PTY data handler
+        if (session.pty && !session.dataHandler) {
+            session.dataHandler = session.pty.onData((data) => {
+                if (session.socket) {
+                    session.socket.emit('terminal:output', { sessionId, data });
+                }
+            });
+        }
+
+        socket.emit('terminal:attached', { sessionId });
         socket.emit('terminal:output', {
             sessionId,
-            data: `\x1b[32m✓ Terminal connected\x1b[0m\n\x1b[36m${session.cwd}\x1b[0m $ `
+            data: '\x1b[32m✓ Terminal connected\x1b[0m\r\n'
         });
     });
 
     socket.on('terminal:input', ({ sessionId, data }) => {
         const session = terminalSessions.get(sessionId);
-
-        if (!session || session.userId !== socket.user.id) {
-            return;
-        }
-
-        // Buffer input until Enter is pressed
-        if (!session.inputBuffer) {
-            session.inputBuffer = '';
-        }
-
-        // Handle special characters
-        if (data === '\r' || data === '\n') {
-            // Execute command
-            const command = session.inputBuffer.trim();
-            session.inputBuffer = '';
-
-            if (!command) {
-                socket.emit('terminal:output', {
-                    sessionId,
-                    data: `\n\x1b[36m${session.cwd}\x1b[0m $ `
-                });
-                return;
-            }
-
-            // Handle cd command
-            if (command.startsWith('cd ')) {
-                const path = command.slice(3).trim();
-                const newPath = path.startsWith('/')
-                    ? path
-                    : require('path').resolve(session.cwd, path);
-
-                const fs = require('fs');
-                if (fs.existsSync(newPath) && fs.statSync(newPath).isDirectory()) {
-                    session.cwd = newPath;
-                    socket.emit('terminal:output', {
-                        sessionId,
-                        data: `\n\x1b[36m${session.cwd}\x1b[0m $ `
-                    });
-                } else {
-                    socket.emit('terminal:output', {
-                        sessionId,
-                        data: `\n\x1b[31mcd: no such directory: ${path}\x1b[0m\n\x1b[36m${session.cwd}\x1b[0m $ `
-                    });
-                }
-                return;
-            }
-
-            // Handle clear
-            if (command === 'clear') {
-                socket.emit('terminal:output', {
-                    sessionId,
-                    data: `\x1b[2J\x1b[H\x1b[36m${session.cwd}\x1b[0m $ `
-                });
-                return;
-            }
-
-            // Execute shell command
-            socket.emit('terminal:output', { sessionId, data: '\n' });
-
-            exec(command, {
-                cwd: session.cwd,
-                timeout: 30000,
-                maxBuffer: 1024 * 1024 * 10,
-                env: {
-                    ...process.env,
-                    TERM: 'xterm-256color',
-                    FORCE_COLOR: '1',
-                },
-            }, (error, stdout, stderr) => {
-                let output = '';
-                if (stdout) output += stdout;
-                if (stderr) output += `\x1b[31m${stderr}\x1b[0m`;
-                if (error && !stderr) output += `\x1b[31m${error.message}\x1b[0m\n`;
-
-                output += `\x1b[36m${session.cwd}\x1b[0m $ `;
-
-                socket.emit('terminal:output', { sessionId, data: output });
-            });
-        } else if (data === '\x7f' || data === '\b') {
-            // Backspace
-            if (session.inputBuffer.length > 0) {
-                session.inputBuffer = session.inputBuffer.slice(0, -1);
-                socket.emit('terminal:output', { sessionId, data: '\b \b' });
-            }
-        } else if (data === '\x03') {
-            // Ctrl+C
-            session.inputBuffer = '';
-            socket.emit('terminal:output', {
-                sessionId,
-                data: `^C\n\x1b[36m${session.cwd}\x1b[0m $ `
-            });
-        } else if (data.charCodeAt(0) >= 32) {
-            // Regular character
-            session.inputBuffer += data;
-            socket.emit('terminal:output', { sessionId, data });
+        if (session && session.userId === socket.user.id && session.pty) {
+            // Write directly to PTY - it handles echo
+            session.pty.write(data);
         }
     });
 
-    socket.on('terminal:resize', () => {
-        // Not needed for command-based terminal
+    socket.on('terminal:resize', ({ sessionId, cols, rows }) => {
+        const session = terminalSessions.get(sessionId);
+        if (session && session.userId === socket.user.id && session.pty) {
+            try {
+                session.pty.resize(cols, rows);
+            } catch (err) {
+                logger.warn(`Failed to resize terminal ${sessionId}:`, err);
+            }
+        }
+    });
+
+    socket.on('disconnect', () => {
+        // Clean up socket references
+        for (const session of terminalSessions.values()) {
+            if (session.socket === socket) {
+                session.socket = null;
+            }
+        }
     });
 };
 

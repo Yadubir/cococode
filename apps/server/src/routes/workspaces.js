@@ -20,7 +20,9 @@ const generateInviteCode = () => {
  * @access  Private
  */
 router.get('/', authenticate, asyncHandler(async (req, res) => {
+    console.log('Fetching workspaces for user:', req.user.id);
     const workspaces = await db.getWorkspacesByUserId(req.user.id);
+    console.log('Found workspaces:', workspaces.length, workspaces.map(w => ({ id: w.id, ownerId: w.ownerId })));
 
     res.json({
         success: true,
@@ -59,6 +61,122 @@ router.post('/', authenticate, asyncHandler(async (req, res) => {
         data: workspace,
     });
 }));
+
+// ========================
+// PUBLIC INVITE ROUTES (must be before /:id to avoid route conflict)
+// ========================
+
+/**
+ * @route   GET /api/workspaces/invites/:code
+ * @desc    Get invite details by code (for join page)
+ * @access  Public
+ */
+router.get('/invites/:code', asyncHandler(async (req, res) => {
+    const invite = await db.getInviteByCode(req.params.code);
+
+    if (!invite) {
+        return res.status(404).json({
+            success: false,
+            error: 'NotFoundError',
+            message: 'Invite not found or has expired',
+        });
+    }
+
+    // Check if expired
+    if (invite.expiresAt && new Date(invite.expiresAt) < new Date()) {
+        return res.status(410).json({
+            success: false,
+            error: 'ExpiredError',
+            message: 'This invite has expired',
+        });
+    }
+
+    // Check max uses
+    if (invite.maxUses > 0 && invite.useCount >= invite.maxUses) {
+        return res.status(410).json({
+            success: false,
+            error: 'ExpiredError',
+            message: 'This invite has reached its maximum uses',
+        });
+    }
+
+    const workspace = await db.getWorkspaceById(invite.workspaceId);
+
+    res.json({
+        success: true,
+        data: {
+            inviteCode: invite.inviteCode,
+            workspace: {
+                id: workspace.id,
+                name: workspace.name,
+            },
+        },
+    });
+}));
+
+/**
+ * @route   POST /api/workspaces/invites/:code/join
+ * @desc    Join a workspace via invite code
+ * @access  Private
+ */
+router.post('/invites/:code/join', authenticate, asyncHandler(async (req, res) => {
+    const invite = await db.getInviteByCode(req.params.code);
+
+    if (!invite) {
+        return res.status(404).json({
+            success: false,
+            error: 'NotFoundError',
+            message: 'Invite not found',
+        });
+    }
+
+    // Check if expired
+    if (invite.expiresAt && new Date(invite.expiresAt) < new Date()) {
+        return res.status(410).json({
+            success: false,
+            error: 'ExpiredError',
+            message: 'This invite has expired',
+        });
+    }
+
+    // Check max uses
+    if (invite.maxUses > 0 && invite.useCount >= invite.maxUses) {
+        return res.status(410).json({
+            success: false,
+            error: 'ExpiredError',
+            message: 'This invite has reached its maximum uses',
+        });
+    }
+
+    // Check if already a member
+    const isMember = await db.isWorkspaceMember(invite.workspaceId, req.user.id);
+    if (isMember) {
+        const workspace = await db.getWorkspaceById(invite.workspaceId);
+        return res.json({
+            success: true,
+            message: 'You are already a member of this workspace',
+            data: { workspace },
+        });
+    }
+
+    // Add user to workspace
+    await db.addWorkspaceMember(invite.workspaceId, req.user.id);
+
+    // Increment use count
+    await db.incrementInviteUseCount(invite.id);
+
+    const workspace = await db.getWorkspaceById(invite.workspaceId);
+
+    res.json({
+        success: true,
+        message: 'Successfully joined workspace',
+        data: { workspace },
+    });
+}));
+
+// ========================
+// WORKSPACE BY ID ROUTES
+// ========================
 
 /**
  * @route   GET /api/workspaces/:id
@@ -107,7 +225,7 @@ router.get('/:id/members', authenticate, asyncHandler(async (req, res) => {
 }));
 
 // ========================
-// INVITE ROUTES
+// WORKSPACE INVITE MANAGEMENT ROUTES
 // ========================
 
 /**
@@ -128,6 +246,13 @@ router.post('/:id/invites', authenticate, asyncHandler(async (req, res) => {
             message: 'Workspace not found',
         });
     }
+
+    // Debug logging
+    console.log('Invite creation check:', {
+        workspaceOwnerId: workspace.ownerId,
+        requestUserId: req.user.id,
+        match: workspace.ownerId === req.user.id
+    });
 
     // Check if user is owner
     if (workspace.ownerId !== req.user.id) {
@@ -230,114 +355,6 @@ router.delete('/:id/invites/:inviteId', authenticate, asyncHandler(async (req, r
     res.json({
         success: true,
         message: 'Invite deleted',
-    });
-}));
-
-/**
- * @route   GET /api/invites/:code
- * @desc    Get invite details by code (for join page)
- * @access  Public
- */
-router.get('/invites/:code', asyncHandler(async (req, res) => {
-    const invite = await db.getInviteByCode(req.params.code);
-
-    if (!invite) {
-        return res.status(404).json({
-            success: false,
-            error: 'NotFoundError',
-            message: 'Invite not found or has expired',
-        });
-    }
-
-    // Check if expired
-    if (invite.expiresAt && new Date(invite.expiresAt) < new Date()) {
-        return res.status(410).json({
-            success: false,
-            error: 'ExpiredError',
-            message: 'This invite has expired',
-        });
-    }
-
-    // Check max uses
-    if (invite.maxUses > 0 && invite.useCount >= invite.maxUses) {
-        return res.status(410).json({
-            success: false,
-            error: 'ExpiredError',
-            message: 'This invite has reached its maximum uses',
-        });
-    }
-
-    const workspace = await db.getWorkspaceById(invite.workspaceId);
-
-    res.json({
-        success: true,
-        data: {
-            inviteCode: invite.inviteCode,
-            workspace: {
-                id: workspace.id,
-                name: workspace.name,
-            },
-        },
-    });
-}));
-
-/**
- * @route   POST /api/invites/:code/join
- * @desc    Join a workspace via invite code
- * @access  Private
- */
-router.post('/invites/:code/join', authenticate, asyncHandler(async (req, res) => {
-    const invite = await db.getInviteByCode(req.params.code);
-
-    if (!invite) {
-        return res.status(404).json({
-            success: false,
-            error: 'NotFoundError',
-            message: 'Invite not found',
-        });
-    }
-
-    // Check if expired
-    if (invite.expiresAt && new Date(invite.expiresAt) < new Date()) {
-        return res.status(410).json({
-            success: false,
-            error: 'ExpiredError',
-            message: 'This invite has expired',
-        });
-    }
-
-    // Check max uses
-    if (invite.maxUses > 0 && invite.useCount >= invite.maxUses) {
-        return res.status(410).json({
-            success: false,
-            error: 'ExpiredError',
-            message: 'This invite has reached its maximum uses',
-        });
-    }
-
-    // Check if already a member
-    const isMember = await db.isWorkspaceMember(invite.workspaceId, req.user.id);
-    if (isMember) {
-        const workspace = await db.getWorkspaceById(invite.workspaceId);
-        return res.json({
-            success: true,
-            message: 'You are already a member of this workspace',
-            data: { workspace },
-        });
-    }
-
-    // Add user to workspace
-    await db.addWorkspaceMember(invite.workspaceId, req.user.id);
-
-    // Increment use count
-    await db.incrementInviteUseCount(invite.id);
-
-    const workspace = await db.getWorkspaceById(invite.workspaceId);
-
-    res.json({
-        success: true,
-        message: 'Successfully joined workspace',
-        data: { workspace },
     });
 }));
 

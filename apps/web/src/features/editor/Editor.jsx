@@ -162,7 +162,14 @@ function Editor() {
             }
 
             // 5. Execute command
-            await api.post(`/terminal/${activeTerminalSessionId}/exec`, { command });
+            // Send current file content to be written to temp dir before execution
+            const content = fileContents[activeFile.id] || '';
+            const files = [{ name: filename, content }];
+
+            await api.post(`/terminal/${activeTerminalSessionId}/exec`, {
+                command,
+                files
+            });
         } catch (error) {
             console.error('Run failed:', error);
         } finally {

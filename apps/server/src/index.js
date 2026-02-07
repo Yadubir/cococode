@@ -12,6 +12,7 @@ const userRoutes = require('./routes/users');
 const workspaceRoutes = require('./routes/workspaces');
 const fileRoutes = require('./routes/files');
 const { router: terminalRoutes, setupTerminalSocket } = require('./routes/terminal');
+const aiRoutes = require('./routes/ai');
 const setupWebSocket = require('./websocket');
 const { setupCollaborationServer } = require('./collaboration');
 const logger = require('./utils/logger');
@@ -51,6 +52,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/workspaces', workspaceRoutes);
 app.use('/api/files', fileRoutes);
 app.use('/api/terminal', terminalRoutes);
+app.use('/api/ai', aiRoutes);
 
 // WebSocket setup
 setupWebSocket(io, setupTerminalSocket);

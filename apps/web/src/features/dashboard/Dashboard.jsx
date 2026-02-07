@@ -14,12 +14,14 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
 import api from '../../services/api';
+import AIAssistant from '../ai/AIAssistant';
 
 function Dashboard() {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const { user } = useAuthStore();
     const [showNewModal, setShowNewModal] = useState(false);
+    const [showAIAssistant, setShowAIAssistant] = useState(false);
     const [newWorkspaceName, setNewWorkspaceName] = useState('');
 
     // Fetch workspaces
@@ -79,7 +81,10 @@ function Dashboard() {
                             <Plus className="w-4 h-4" />
                             New Workspace
                         </button>
-                        <button className="btn btn-secondary flex items-center gap-2">
+                        <button
+                            onClick={() => setShowAIAssistant(true)}
+                            className="btn btn-secondary flex items-center gap-2"
+                        >
                             <Sparkles className="w-4 h-4" />
                             AI Assistant
                         </button>
@@ -161,6 +166,12 @@ function Dashboard() {
                     </div>
                 </div>
             )}
+
+            {/* AI Assistant Modal */}
+            <AIAssistant
+                isOpen={showAIAssistant}
+                onClose={() => setShowAIAssistant(false)}
+            />
         </div>
     );
 }
