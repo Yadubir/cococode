@@ -34,7 +34,7 @@ router.post('/chat', authenticate, asyncHandler(async (req, res) => {
     }
 
     try {
-        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
         // Build the prompt with context
         const systemPrompt = `You are a helpful AI coding assistant integrated into CocoCode, a collaborative online code editor. 
@@ -45,7 +45,7 @@ You help developers with:
 - Suggesting best practices
 - Answering programming questions
 
-Be concise but thorough. Format code examples with proper markdown code blocks.
+Be concise but thorough. Give text format, no markdown
 Use the user's context when relevant.`;
 
         const prompt = context
