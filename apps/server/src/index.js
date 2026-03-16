@@ -94,12 +94,34 @@ const PORT = process.env.PORT || 3001;
 
 (async () => {
     try {
-        await initDatabase();
-        httpServer.listen(PORT, () => {
-            logger.info(`🚀 CocoCode Server running on port ${PORT}`);
-            logger.info(`📡 WebSocket server ready`);
-            logger.info(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+        // Start HTTP server FIRST so Railway's health check on /health
+        // succeeds immediately — before the DB is ready.
+        await new Promise((resolve) => {
+            httpServer.listen(PORT, () => {
+                logger.info(`🚀 CocoCode Server running on port ${PORT}`);
+                logger.info(`📡 WebSocket server ready`);
+                logger.info(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+                resolve();
+            });
         });
+
+        // Then connect to the database (with retries for cold Railway starts)
+        let retries = 10;
+        while (retries > 0) {
+            try {
+                await initDatabase();
+                logger.info('✅ Database ready');
+                break;
+            } catch (err) {
+                retries--;
+                if (retries === 0) {
+                    logger.error('❌ Database failed after all retries:', err);
+                    process.exit(1);
+                }
+                logger.warn(`⏳ Database not ready, retrying in 3s... (${retries} attempts left)`);
+                await new Promise(r => setTimeout(r, 3000));
+            }
+        }
     } catch (error) {
         logger.error('Failed to start server:', error);
         process.exit(1);
