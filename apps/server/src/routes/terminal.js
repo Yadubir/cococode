@@ -11,7 +11,15 @@ const router = express.Router();
 // Store active terminal sessions
 const terminalSessions = new Map();
 
-const SHELL = process.env.SHELL || '/bin/bash';
+// Use bash explicitly — available everywhere including Docker Alpine (with bash installed)
+// Fall back to sh if bash is not present
+const SHELL = (() => {
+    const candidates = ['/bin/bash', '/usr/bin/bash', '/bin/sh'];
+    for (const s of candidates) {
+        try { fs.accessSync(s, fs.constants.X_OK); return s; } catch {}
+    }
+    return '/bin/sh';
+})();
 
 /**
  * Create a new terminal session with PTY
@@ -33,16 +41,42 @@ router.post('/create', authenticate, (req, res) => {
     }
 
     try {
-        // Spawn PTY process
-        const ptyProcess = pty.spawn(SHELL, [], {
+        // Write a minimal .bashrc so the shell prompt is clean and stays in tempDir
+        const bashrc = [
+            `export HOME="${tempDir}"`,
+            `export PS1="\\[\\033[0;32m\\]cococode\\[\\033[0m\\]:\\[\\033[0;34m\\]\\W\\[\\033[0m\\]$ "`,
+            `export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"`,
+            `cd "${tempDir}"`,
+            `alias ll="ls -lah --color=auto"`,
+            `alias la="ls -A --color=auto"`,
+            `alias l="ls -CF --color=auto"`,
+            `# Welcome`,
+            `echo ""`,
+            `echo -e "\\033[0;36m  CocoCode Terminal\\033[0m"`,
+            `echo -e "\\033[0;90m  Workspace: ${sessionId}\\033[0m"`,
+            `echo ""`,
+        ].join('\n');
+
+        fs.writeFileSync(path.join(tempDir, '.bashrc'), bashrc);
+        fs.writeFileSync(path.join(tempDir, '.bash_profile'), `source "${path.join(tempDir, '.bashrc')}"\n`);
+
+        // Spawn PTY process — HOME points to tempDir so shell rc files load from there
+        const ptyProcess = pty.spawn(SHELL, ['--rcfile', path.join(tempDir, '.bashrc')], {
             name: 'xterm-256color',
             cols: 80,
             rows: 24,
             cwd: tempDir,
             env: {
-                ...process.env,
                 TERM: 'xterm-256color',
                 COLORTERM: 'truecolor',
+                HOME: tempDir,
+                // Minimal safe PATH — no access to host dev tools unless in container
+                PATH: '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin',
+                SHELL,
+                LANG: 'en_US.UTF-8',
+                LC_ALL: 'en_US.UTF-8',
+                // Pass through Node/Python/Go paths if present in the real env
+                ...(process.env.NODE_PATH ? { NODE_PATH: process.env.NODE_PATH } : {}),
             }
         });
 
@@ -114,8 +148,8 @@ router.post('/:sessionId/exec', authenticate, (req, res) => {
     }
 
     if (command && session.pty) {
-        // Write command to PTY (PTY handles echo)
-        session.pty.write(`${command}\r`);
+        // Always ensure we run from the workspace directory
+        session.pty.write(`cd "${session.tempDir}" && ${command}\r`);
     }
 
     res.json({

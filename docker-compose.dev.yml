@@ -1,0 +1,29 @@
+# Development overrides — use with:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+#
+# This replaces the production builds with hot-reload dev servers.
+
+version: '3.8'
+
+services:
+  server:
+    build:
+      target: deps          # stop at the deps stage — faster rebuild
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ./apps/server/src:/app/src   # live reload via nodemon
+    command: npm run dev
+
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile.dev
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:3001
+      - VITE_WS_URL=http://localhost:3001
+    volumes:
+      - ./apps/web/src:/app/src
+    command: npm run dev -- --host

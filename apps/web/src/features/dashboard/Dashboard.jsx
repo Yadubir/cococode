@@ -10,7 +10,8 @@ import {
     Trash2,
     Share2,
     Code2,
-    Sparkles
+    Sparkles,
+    Github
 } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
 import api from '../../services/api';
@@ -23,6 +24,14 @@ function Dashboard() {
     const [showNewModal, setShowNewModal] = useState(false);
     const [showAIAssistant, setShowAIAssistant] = useState(false);
     const [newWorkspaceName, setNewWorkspaceName] = useState('');
+
+    const githubLinked = new URLSearchParams(window.location.search).get('github_linked');
+
+    const handleLinkGithub = () => {
+        const token = useAuthStore.getState().token;
+        if (!token) return;
+        window.location.href = `http://localhost:3001/api/auth/github?state=${token}`;
+    };
 
     // Fetch workspaces
     const { data: workspaces, isLoading } = useQuery({
@@ -87,6 +96,13 @@ function Dashboard() {
                         >
                             <Sparkles className="w-4 h-4" />
                             AI Assistant
+                        </button>
+                        <button
+                            onClick={handleLinkGithub}
+                            className="btn btn-secondary flex items-center gap-2"
+                        >
+                            <Github className="w-4 h-4" />
+                            {githubLinked ? 'GitHub Linked \u2713' : 'Link GitHub'}
                         </button>
                     </div>
                 </div>

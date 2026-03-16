@@ -8,6 +8,10 @@ const router = express.Router();
 
 // Initialize Gemini AI
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+// Separate instance for autocomplete to use a different API key (avoids quota conflicts)
+const genAIAutocomplete = new GoogleGenerativeAI(
+    process.env.GEMINI_AUTOCOMPLETE_KEY || process.env.GEMINI_API_KEY
+);
 
 /**
  * @route   POST /api/ai/chat
@@ -163,7 +167,7 @@ router.post('/explain', authenticate, asyncHandler(async (req, res) => {
     }
 
     try {
-        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' });
 
         const prompt = `Explain the following ${language || 'code'} in a clear and concise way. 
 Break down what each part does:
@@ -209,7 +213,7 @@ router.post('/suggest', authenticate, asyncHandler(async (req, res) => {
     }
 
     try {
-        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' });
 
         const prompt = `You are CocoCode AI, an intelligent programming assistant embedded inside CocoCode, a collaborative online code editor used by developers to write, debug, and review code in real time.
 
@@ -331,6 +335,66 @@ Your goal is to act as a reliable coding partner that helps developers understan
             success: false,
             error: 'AIError',
             message: 'Failed to get suggestions',
+        });
+    }
+}));
+
+/**
+ * @route   POST /api/ai/autocomplete
+ * @desc    Generate ghost text auto-completions based on cursor position
+ * @access  Private
+ */
+router.post('/autocomplete', authenticate, asyncHandler(async (req, res) => {
+    const { prefix, suffix, language } = req.body;
+
+    if (!prefix) {
+        return res.status(400).json({ success: false, message: 'Prefix is required' });
+    }
+
+    if (!process.env.GEMINI_API_KEY) {
+        return res.status(500).json({
+            success: false,
+            error: 'ConfigurationError',
+            message: 'AI service is not configured',
+        });
+    }
+
+    try {
+        const model = genAIAutocomplete.getGenerativeModel({ model: 'gemini-2.5-flash' });
+
+        const prompt = `You are a highly advanced code auto-completion AI.
+Your task is to accurately predict the exact code that should perfectly fit between the [PREFIX] and [SUFFIX] blocks.
+Return ONLY the raw code that belongs in the middle. DO NOT output markdown formatting (like \`\`\`javascript).
+DO NOT provide explanations. ONLY bare code. If there is no logical code to insert, output nothing.
+
+[PREFIX]
+${prefix}
+[SUFFIX]
+${suffix || ''}`;
+
+        const result = await model.generateContent(prompt);
+        let text = result.response.text().trim();
+
+        // Strip markdown code fences if the model ignores the instruction
+        const fenceMatch = text.match(/^```[\w]*\n([\s\S]*?)```$/);
+        if (fenceMatch) {
+            text = fenceMatch[1].trim();
+        }
+
+        res.json({
+            success: true,
+            data: {
+                completion: text,
+            },
+        });
+    } catch (error) {
+        logger.error('AI autocomplete error:', error);
+        const status = error.status === 429 ? 429 : 500;
+        res.status(status).json({
+            success: false,
+            message: status === 429
+                ? 'AI rate limit exceeded. Please wait a moment before trying again.'
+                : 'Failed to generate autocomplete',
         });
     }
 }));

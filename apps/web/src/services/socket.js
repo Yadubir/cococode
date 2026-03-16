@@ -16,9 +16,10 @@ export const initSocket = () => {
         return null;
     }
 
-    socket = io(import.meta.env.VITE_WS_URL || 'http://localhost:3001', {
+    socket = io(import.meta.env.VITE_WS_URL || '', {
         auth: { token },
         transports: ['websocket', 'polling'],
+        path: '/socket.io',
     });
 
     socket.on('connect', () => {

@@ -1,18 +1,46 @@
-FROM node:20-alpine
+# ─── Stage 1: Build native deps (node-pty needs python3 + make + g++) ────────
+FROM node:20-slim AS deps
 
 WORKDIR /app
 
-# Copy package files
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 make g++ \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY package*.json ./
+RUN npm ci --omit=dev
 
-# Install dependencies
-RUN npm install
+# ─── Stage 2: Production image ───────────────────────────────────────────────
+FROM node:20-slim AS runner
 
-# Copy source code
+WORKDIR /app
+
+# Runtime tools available inside every terminal sandbox
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    bash \
+    git \
+    curl \
+    python3 \
+    python3-pip \
+    gcc \
+    g++ \
+    make \
+    && ln -sf python3 /usr/bin/python \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy compiled native deps from build stage
+COPY --from=deps /app/node_modules ./node_modules
+
+# Copy application source
 COPY . .
 
-# Expose port
+# Create a non-root user for security
+RUN groupadd -r cococode && useradd -r -g cococode cococode \
+    && mkdir -p /tmp/cococode \
+    && chown -R cococode:cococode /tmp/cococode /app
+
+USER cococode
+
 EXPOSE 3001
 
-# Start development server
-CMD ["npm", "run", "dev"]
+CMD ["node", "src/index.js"]

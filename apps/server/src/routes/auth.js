@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { authenticate } = require('../middleware/auth');
+const passport = require('../services/passport');
 const db = require('../services/database');
 const logger = require('../utils/logger');
 
@@ -223,5 +224,55 @@ router.post('/logout', authenticate, asyncHandler(async (req, res) => {
         message: 'Logged out successfully',
     });
 }));
+
+/**
+ * @route   GET /api/auth/github
+ * @desc    Start GitHub OAuth flow
+ * @access  Public (with state variable containing JWT)
+ */
+router.get('/github', (req, res, next) => {
+    // The frontend should pass the standard JWT in the `state` query param
+    const { state } = req.query;
+    passport.authenticate('github', { 
+        scope: ['repo', 'user:email'],
+        state: state
+    })(req, res, next);
+});
+
+/**
+ * @route   GET /api/auth/github/callback
+ * @desc    GitHub OAuth callback
+ * @access  Public
+ */
+router.get('/github/callback', 
+    passport.authenticate('github', { failureRedirect: 'http://localhost:5173/dashboard?error=github_auth_failed', session: false }),
+    asyncHandler(async (req, res) => {
+        // The GitHub token and profile are in req.user due to our custom strategy
+        const { accessToken } = req.user;
+        
+        // We recover the original user's JWT from the state param that GitHub echoed back
+        const token = req.query.state;
+        if (!token) return res.redirect('http://localhost:5173/dashboard?error=missing_state_token');
+        
+        try {
+            // Decode the token to get our User ID
+            const jwt = require('jsonwebtoken');
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+            const user = await db.getUserById(decoded.id);
+            
+            if (!user) return res.redirect('http://localhost:5173/dashboard?error=user_not_found');
+            
+            // Save the GitHub Token in user settings
+            const settings = { ...user.settings, githubToken: accessToken };
+            await db.updateUser(user.id, { settings });
+            
+            // Redirect back to frontend with success
+            res.redirect('http://localhost:5173/dashboard?github_linked=true');
+        } catch (error) {
+            console.error(error);
+            res.redirect('http://localhost:5173/dashboard?error=jwt_verification_failed');
+        }
+    })
+);
 
 module.exports = router;

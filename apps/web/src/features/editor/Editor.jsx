@@ -1,15 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import MonacoEditor from '@monaco-editor/react';
 import {
-    X,
-    File,
-    Save,
-    Circle,
-    Terminal as TerminalIcon,
-    Users,
-    Play
+    Loader2, Play, Save, TerminalSquare, AlertCircle, Maximize2, Minimize2, Sparkles, MessageSquare,
+    X, File, Circle, Terminal as TerminalIcon, Users, Bot
 } from 'lucide-react';
+import MonacoEditor, { useMonaco } from '@monaco-editor/react';
+// import { useAuthStore } from '../../stores/authStore';
+// import useStore from '../../stores/store';
 import { useEditorStore } from '../../stores/editorStore';
 import { initSocket } from '../../services/socket';
 import api from '../../services/api';
@@ -21,7 +18,8 @@ import { useCollaboration } from '../../hooks/useCollaboration';
 import ChatPanel from '../communication/ChatPanel';
 import CallManager from '../communication/CallManager';
 import AIChatPanel from '../ai/AIChatPanel';
-import { MessageSquare, Bot } from 'lucide-react';
+// import { MessageSquare, Bot } from 'lucide-react';
+import { useAICompletions } from '../ai/useAICompletions';
 
 function Editor() {
     const { workspaceId } = useParams();
@@ -48,6 +46,9 @@ function Editor() {
     const [editorInstance, setEditorInstance] = useState(null);
     const [showChat, setShowChat] = useState(false);
     const [showAI, setShowAI] = useState(false);
+
+    const monaco = useMonaco();
+    useAICompletions(monaco, editorInstance);
 
     // Collaboration
     const documentId = activeFile ? `${workspaceId}:${activeFile.id}` : null;
@@ -103,6 +104,7 @@ function Editor() {
         setIsSaving(true);
         try {
             await saveFile(activeFile.id);
+            window.dispatchEvent(new Event('workspace-files-changed'));
         } catch (error) {
             console.error('Save failed:', error);
         } finally {
@@ -380,6 +382,10 @@ function Editor() {
                                     renderWhitespace: 'selection',
                                     cursorBlinking: 'smooth',
                                     smoothScrolling: true,
+                                    inlineSuggest: {
+                                        enabled: true,
+                                        mode: 'subword',
+                                    },
                                 }}
                             />
                         ) : (

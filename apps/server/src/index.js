@@ -13,6 +13,7 @@ const workspaceRoutes = require('./routes/workspaces');
 const fileRoutes = require('./routes/files');
 const { router: terminalRoutes, setupTerminalSocket } = require('./routes/terminal');
 const aiRoutes = require('./routes/ai');
+const gitRoutes = require('./routes/git');
 
 const setupWebSocket = require('./websocket');
 const { setupCollaborationServer } = require('./collaboration');
@@ -26,7 +27,18 @@ const httpServer = createServer(app);
 // Socket.io setup
 const io = new Server(httpServer, {
     cors: {
-        origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+        origin: (origin, callback) => {
+            const allowed = (process.env.CORS_ORIGIN || '')
+                .split(',')
+                .map(o => o.trim())
+                .filter(Boolean);
+            // Allow requests with no origin (curl, server-to-server) or matching origins
+            if (!origin || allowed.length === 0 || allowed.includes(origin) || allowed.includes('*')) {
+                callback(null, true);
+            } else {
+                callback(new Error(`CORS: origin ${origin} not allowed`));
+            }
+        },
         methods: ['GET', 'POST'],
         credentials: true,
     },
@@ -35,7 +47,17 @@ const io = new Server(httpServer, {
 // Middleware
 app.use(helmet());
 app.use(cors({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+    origin: (origin, callback) => {
+        const allowed = (process.env.CORS_ORIGIN || '')
+            .split(',')
+            .map(o => o.trim())
+            .filter(Boolean);
+        if (!origin || allowed.length === 0 || allowed.includes(origin) || allowed.includes('*')) {
+            callback(null, true);
+        } else {
+            callback(new Error(`CORS: origin ${origin} not allowed`));
+        }
+    },
     credentials: true,
 }));
 app.use(morgan('combined', { stream: { write: msg => logger.info(msg.trim()) } }));
@@ -54,6 +76,7 @@ app.use('/api/workspaces', workspaceRoutes);
 app.use('/api/files', fileRoutes);
 app.use('/api/terminal', terminalRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/git', gitRoutes);
 
 
 // WebSocket setup

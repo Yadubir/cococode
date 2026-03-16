@@ -23,24 +23,9 @@ function GitPanel({ workspaceId }) {
         untracked: [],
     });
     const [commitMessage, setCommitMessage] = useState('');
+    const [repoUrl, setRepoUrl] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [expandedSections, setExpandedSections] = useState(new Set(['unstaged', 'staged']));
-
-    // Simulated git status - in production would call the API
-    useEffect(() => {
-        setChanges({
-            staged: [
-                { path: 'src/index.js', status: 'modified' },
-            ],
-            unstaged: [
-                { path: 'src/App.jsx', status: 'modified' },
-                { path: 'src/components/Button.jsx', status: 'modified' },
-            ],
-            untracked: [
-                { path: 'src/utils/helpers.js', status: 'untracked' },
-            ],
-        });
-    }, [workspaceId]);
 
     const toggleSection = (section) => {
         setExpandedSections(prev => {
@@ -54,49 +39,120 @@ function GitPanel({ workspaceId }) {
         });
     };
 
-    const handleStageFile = (file) => {
-        setChanges(prev => ({
-            ...prev,
-            staged: [...prev.staged, file],
-            unstaged: prev.unstaged.filter(f => f.path !== file.path),
-            untracked: prev.untracked.filter(f => f.path !== file.path),
-        }));
+    const fetchStatus = async () => {
+        try {
+            const res = await api.get(`/git/${workspaceId}/status`);
+            const { branch, changes: gitChanges } = res.data.data;
+            setCurrentBranch(branch);
+            setChanges(gitChanges);
+        } catch (error) {
+            console.error('Failed to fetch git status:', error);
+        }
     };
 
-    const handleUnstageFile = (file) => {
-        setChanges(prev => ({
-            ...prev,
-            unstaged: [...prev.unstaged, file],
-            staged: prev.staged.filter(f => f.path !== file.path),
-        }));
+    useEffect(() => {
+        if (workspaceId) {
+            fetchStatus();
+        }
+
+        const handleFilesChanged = () => fetchStatus();
+        window.addEventListener('workspace-files-changed', handleFilesChanged);
+
+        return () => {
+            window.removeEventListener('workspace-files-changed', handleFilesChanged);
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [workspaceId]);
+
+    const handleStageFile = async (file) => {
+        try {
+            await api.post(`/git/${workspaceId}/stage`, { files: [file.path] });
+            fetchStatus();
+        } catch (err) {
+            console.error(err);
+        }
     };
 
-    const handleStageAll = () => {
-        setChanges(prev => ({
-            staged: [...prev.staged, ...prev.unstaged, ...prev.untracked],
-            unstaged: [],
-            untracked: [],
-        }));
+    const handleUnstageFile = async (file) => {
+        try {
+            await api.post(`/git/${workspaceId}/unstage`, { files: [file.path] });
+            fetchStatus();
+        } catch (err) {
+            console.error(err);
+        }
     };
 
-    const handleUnstageAll = () => {
-        setChanges(prev => ({
-            staged: [],
-            unstaged: [...prev.unstaged, ...prev.staged.filter(f => f.status !== 'untracked')],
-            untracked: [...prev.untracked, ...prev.staged.filter(f => f.status === 'untracked')],
-        }));
+    const handleStageAll = async () => {
+        try {
+            await api.post(`/git/${workspaceId}/stage`, { all: true });
+            fetchStatus();
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const handleUnstageAll = async () => {
+        try {
+            await api.post(`/git/${workspaceId}/unstage`, { all: true });
+            fetchStatus();
+        } catch (err) {
+            console.error(err);
+        }
     };
 
     const handleCommit = async () => {
         if (!commitMessage.trim() || changes.staged.length === 0) return;
 
         setIsLoading(true);
-        // Simulate commit
-        setTimeout(() => {
-            setChanges(prev => ({ ...prev, staged: [] }));
+        try {
+            await api.post(`/git/${workspaceId}/commit`, { message: commitMessage });
             setCommitMessage('');
+            fetchStatus();
+        } catch (err) {
+            console.error('Commit failed', err);
+        } finally {
             setIsLoading(false);
-        }, 1000);
+        }
+    };
+
+    const handleSetRemote = async () => {
+        if (!repoUrl.trim()) return;
+        setIsLoading(true);
+        try {
+            await api.post(`/git/${workspaceId}/remote`, { repoUrl: repoUrl.trim() });
+            // Optionally show a success toast here
+        } catch (err) {
+            console.error('Failed to link remote', err);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handlePush = async () => {
+        setIsLoading(true);
+        try {
+            await api.post(`/git/${workspaceId}/push`);
+            fetchStatus();
+        } catch (err) {
+            console.error('Push failed', err);
+            alert(err.response?.data?.message || 'Push failed');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handlePull = async () => {
+        setIsLoading(true);
+        try {
+            await api.post(`/git/${workspaceId}/pull`);
+            fetchStatus();
+            window.dispatchEvent(new Event('workspace-files-changed')); // Tell editor to reload files
+        } catch (err) {
+            console.error('Pull failed', err);
+            alert(err.response?.data?.message || 'Pull failed');
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const getStatusIcon = (status) => {
@@ -123,19 +179,37 @@ function GitPanel({ workspaceId }) {
                 <div className="flex items-center gap-2 mb-3">
                     <GitBranch className="w-4 h-4 text-editor-accent" />
                     <span className="font-medium">{currentBranch}</span>
-                    <button className="ml-auto btn btn-secondary text-xs py-1 px-2">
+                    <button onClick={fetchStatus} className="ml-auto btn btn-secondary text-xs py-1 px-2" title="Refresh Git Status">
                         <RefreshCw className="w-3 h-3" />
                     </button>
                 </div>
 
+                {/* Remote GitHub Setup */}
+                <div className="mb-3 flex gap-2">
+                    <input 
+                        type="text" 
+                        placeholder="https://github.com/user/repo" 
+                        value={repoUrl}
+                        onChange={(e) => setRepoUrl(e.target.value)}
+                        className="input text-xs flex-1"
+                    />
+                    <button onClick={handleSetRemote} disabled={isLoading || !repoUrl.trim()} className="btn btn-secondary text-xs px-2">Link</button>
+                </div>
+
                 {/* Quick Actions */}
                 <div className="flex gap-2">
-                    <button className="flex-1 btn btn-secondary text-xs py-1 flex items-center justify-center gap-1">
-                        <Download className="w-3 h-3" />
+                    <button 
+                         onClick={handlePull} 
+                         disabled={isLoading}
+                         className="flex-1 btn btn-secondary text-xs py-1 flex items-center justify-center gap-1">
+                        {isLoading ? <RefreshCw className="w-3 h-3 animate-spin"/> : <Download className="w-3 h-3" />}
                         Pull
                     </button>
-                    <button className="flex-1 btn btn-secondary text-xs py-1 flex items-center justify-center gap-1">
-                        <Upload className="w-3 h-3" />
+                    <button 
+                         onClick={handlePush} 
+                         disabled={isLoading}
+                         className="flex-1 btn btn-secondary text-xs py-1 flex items-center justify-center gap-1">
+                        {isLoading ? <RefreshCw className="w-3 h-3 animate-spin"/> : <Upload className="w-3 h-3" />}
                         Push
                     </button>
                 </div>
