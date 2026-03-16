@@ -76,20 +76,16 @@ services:
         source: /*
         destination: /index.html
     envVars:
-      # Points the Vite bundle at the backend.
-      # Render auto-fills the server URL once cococode-server is deployed.
+      # VITE_API_URL and VITE_WS_URL are baked into the bundle at build time.
+      # After first deploy, copy your cococode-server URL from the Render dashboard
+      # and set these here (or in the Render dashboard env vars UI).
+      # Example:
+      #   VITE_API_URL = https://cococode-server.onrender.com/api
+      #   VITE_WS_URL  = https://cococode-server.onrender.com
       - key: VITE_API_URL
-        fromService:
-          name: cococode-server
-          type: web
-          property: host
-          envVarPrefix: https://
-          envVarSuffix: /api
-        # ↑ If the above syntax doesn't work in your Render plan, set manually:
-        # value: https://cococode-server.onrender.com/api
         sync: false
       - key: VITE_WS_URL
-        sync: false             # set to https://cococode-server.onrender.com
+        sync: false
 
   # ── Redis ───────────────────────────────────────────────────────────────────
   - type: redis
