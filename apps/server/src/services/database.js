@@ -195,10 +195,55 @@ const getWorkspaceMembers = async (workspaceId) => {
      SELECT u.id, u.email, u.name, u.avatar, 'owner' as role, w.created_at as joined_at
      FROM workspaces w
      JOIN users u ON w.owner_id = u.id
-     WHERE w.id = $1`,
+     WHERE w.id = $1
+     ORDER BY joined_at ASC`,
         [workspaceId]
     );
     return result.rows;
+};
+
+// ===================
+// MESSAGE OPERATIONS
+// ===================
+
+const createMessage = async (message) => {
+    const result = await query(
+        `INSERT INTO workspace_messages (workspace_id, user_id, content)
+     VALUES ($1, $2, $3)
+     RETURNING *`,
+        [message.workspaceId, message.userId, message.content]
+    );
+    // Fetch with user details
+    const msgWithUser = await query(
+        `SELECT m.*, u.name as user_name, u.avatar as user_avatar 
+         FROM workspace_messages m
+         JOIN users u ON m.user_id = u.id
+         WHERE m.id = $1`,
+        [result.rows[0].id]
+    );
+    return mapMessage(msgWithUser.rows[0]);
+};
+
+const getMessagesByWorkspace = async (workspaceId, limit = 50, beforeId = null) => {
+    let queryStr = `
+        SELECT m.*, u.name as user_name, u.avatar as user_avatar 
+        FROM workspace_messages m
+        JOIN users u ON m.user_id = u.id
+        WHERE m.workspace_id = $1
+    `;
+    const params = [workspaceId];
+    
+    if (beforeId) {
+        queryStr += ` AND m.id < $2`;
+        params.push(beforeId);
+    }
+    
+    queryStr += ` ORDER BY m.created_at DESC LIMIT $${params.length + 1}`;
+    params.push(limit);
+    
+    const result = await query(queryStr, params);
+    // Reverse to get chronological order
+    return result.rows.reverse().map(mapMessage);
 };
 
 // ===================
@@ -234,6 +279,16 @@ const mapInvite = (row) => ({
     expiresAt: row.expires_at,
     maxUses: row.max_uses,
     useCount: row.use_count,
+    createdAt: row.created_at,
+});
+
+const mapMessage = (row) => ({
+    id: row.id,
+    workspaceId: row.workspace_id,
+    userId: row.user_id,
+    userName: row.user_name,
+    userAvatar: row.user_avatar,
+    content: row.content,
     createdAt: row.created_at,
 });
 
@@ -300,10 +355,19 @@ const initDatabase = async () => {
         created_at TIMESTAMP DEFAULT NOW()
       );
 
+      CREATE TABLE IF NOT EXISTS workspace_messages (
+        id SERIAL PRIMARY KEY,
+        workspace_id UUID REFERENCES workspaces(id) ON DELETE CASCADE,
+        user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+        content TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+
       CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
       CREATE INDEX IF NOT EXISTS idx_workspaces_owner ON workspaces(owner_id);
       CREATE INDEX IF NOT EXISTS idx_files_workspace ON files(workspace_id);
       CREATE INDEX IF NOT EXISTS idx_invites_code ON workspace_invites(invite_code);
+      CREATE INDEX IF NOT EXISTS idx_messages_workspace ON workspace_messages(workspace_id, created_at DESC);
     `);
 
         logger.info('Database tables initialized');
@@ -332,4 +396,6 @@ module.exports = {
     addWorkspaceMember,
     isWorkspaceMember,
     getWorkspaceMembers,
+    createMessage,
+    getMessagesByWorkspace,
 };

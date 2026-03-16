@@ -18,6 +18,9 @@ import CommandPalette from './CommandPalette';
 import Terminal from '../terminal/Terminal';
 import UserPresence from '../collaboration/UserPresence';
 import { useCollaboration } from '../../hooks/useCollaboration';
+import ChatPanel from '../communication/ChatPanel';
+import CallManager from '../communication/CallManager';
+import { MessageSquare } from 'lucide-react';
 
 function Editor() {
     const { workspaceId } = useParams();
@@ -42,6 +45,7 @@ function Editor() {
     const [isTerminalMaximized, setIsTerminalMaximized] = useState(false);
     const [activeTerminalSessionId, setActiveTerminalSessionId] = useState(null);
     const [editorInstance, setEditorInstance] = useState(null);
+    const [showChat, setShowChat] = useState(false);
 
     // Collaboration
     const documentId = activeFile ? `${workspaceId}:${activeFile.id}` : null;
@@ -307,6 +311,16 @@ function Editor() {
                                 </button>
                             )}
 
+                            {/* Chat toggle button */}
+                            <button
+                                onClick={() => setShowChat(!showChat)}
+                                className={`px-3 py-1 hover:bg-editor-active flex items-center gap-1 ${showChat ? 'text-editor-accent' : 'text-editor-text-dim'
+                                    }`}
+                                title="Toggle Chat"
+                            >
+                                <MessageSquare className="w-4 h-4" />
+                            </button>
+
                             {/* Terminal toggle button */}
                             <button
                                 onClick={() => setShowTerminal(!showTerminal)}
@@ -373,6 +387,11 @@ function Editor() {
                         )}
                     </div>
                 </div>
+
+                {/* Right Sidebar Area (Chat) */}
+                {showChat && (
+                    <ChatPanel workspaceId={workspaceId} />
+                )}
             </div>
 
             {/* Terminal Panel */}
@@ -384,6 +403,9 @@ function Editor() {
                     onSessionChange={setActiveTerminalSessionId}
                 />
             </div>
+
+            {/* Voice/Video Call Manager */}
+            {workspaceId && <CallManager workspaceId={workspaceId} />}
 
             {/* Command Palette */}
             <CommandPalette

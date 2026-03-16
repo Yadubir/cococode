@@ -225,6 +225,45 @@ router.get('/:id/members', authenticate, asyncHandler(async (req, res) => {
 }));
 
 // ========================
+// WORKSPACE MESSAGE ROUTES
+// ========================
+
+/**
+ * @route   GET /api/workspaces/:id/messages
+ * @desc    Get chat message history for workspace
+ * @access  Private
+ */
+router.get('/:id/messages', authenticate, asyncHandler(async (req, res) => {
+    const workspace = await db.getWorkspaceById(req.params.id);
+
+    if (!workspace) {
+        return res.status(404).json({
+            success: false,
+            error: 'NotFoundError',
+            message: 'Workspace not found',
+        });
+    }
+
+    // Check member access
+    const isMember = await db.isWorkspaceMember(req.params.id, req.user.id);
+    if (!isMember) {
+        return res.status(403).json({
+            success: false,
+            error: 'ForbiddenError',
+            message: 'You are not a member of this workspace',
+        });
+    }
+
+    const { limit = 50, beforeId } = req.query;
+    const messages = await db.getMessagesByWorkspace(req.params.id, parseInt(limit), beforeId);
+
+    res.json({
+        success: true,
+        data: messages,
+    });
+}));
+
+// ========================
 // WORKSPACE INVITE MANAGEMENT ROUTES
 // ========================
 
