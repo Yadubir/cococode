@@ -32,6 +32,17 @@ pnpm dev
 docker-compose up -d
 ```
 
+## Current Phase: Real-Time Communication & Collaboration
+*(Recently Updated)*
+
+The project is currently in the advanced collaboration phase, focusing on real-time communication:
+- **Real-Time Socket Messaging**: Integrated chat functionality using WebSockets.
+- **Persistent Chat History**: Chat messages are now persisted and loaded in the sidebar.
+- **Peer-to-Peer Calls**: Added WebRTC-based audio/video calling capabilities.
+- **Signaling Server**: Dedicated signaling for WebRTC connection negotiation.
+- **Sidebar Integration**: Unified communication tools in the workspace UI.
+- **Terminal Sync**: Synchronized terminal document state across collaborators.
+
 ## Project Structure
 
 ```

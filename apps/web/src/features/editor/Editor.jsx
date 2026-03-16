@@ -20,7 +20,8 @@ import UserPresence from '../collaboration/UserPresence';
 import { useCollaboration } from '../../hooks/useCollaboration';
 import ChatPanel from '../communication/ChatPanel';
 import CallManager from '../communication/CallManager';
-import { MessageSquare } from 'lucide-react';
+import AIChatPanel from '../ai/AIChatPanel';
+import { MessageSquare, Bot } from 'lucide-react';
 
 function Editor() {
     const { workspaceId } = useParams();
@@ -46,6 +47,7 @@ function Editor() {
     const [activeTerminalSessionId, setActiveTerminalSessionId] = useState(null);
     const [editorInstance, setEditorInstance] = useState(null);
     const [showChat, setShowChat] = useState(false);
+    const [showAI, setShowAI] = useState(false);
 
     // Collaboration
     const documentId = activeFile ? `${workspaceId}:${activeFile.id}` : null;
@@ -311,14 +313,29 @@ function Editor() {
                                 </button>
                             )}
 
-                            {/* Chat toggle button */}
                             <button
-                                onClick={() => setShowChat(!showChat)}
+                                onClick={() => {
+                                    setShowChat(!showChat);
+                                    if (!showChat) setShowAI(false);
+                                }}
                                 className={`px-3 py-1 hover:bg-editor-active flex items-center gap-1 ${showChat ? 'text-editor-accent' : 'text-editor-text-dim'
                                     }`}
                                 title="Toggle Chat"
                             >
                                 <MessageSquare className="w-4 h-4" />
+                            </button>
+
+                            {/* AI toggle button */}
+                            <button
+                                onClick={() => {
+                                    setShowAI(!showAI);
+                                    if (!showAI) setShowChat(false);
+                                }}
+                                className={`px-3 py-1 hover:bg-editor-active flex items-center gap-1 ${showAI ? 'text-blue-400' : 'text-editor-text-dim'
+                                    }`}
+                                title="Toggle AI Assistant"
+                            >
+                                <Bot className="w-4 h-4" />
                             </button>
 
                             {/* Terminal toggle button */}
@@ -388,9 +405,20 @@ function Editor() {
                     </div>
                 </div>
 
-                {/* Right Sidebar Area (Chat) */}
+                {/* Right Sidebar Area (Chat / AI) */}
                 {showChat && (
                     <ChatPanel workspaceId={workspaceId} />
+                )}
+                {showAI && (
+                    <AIChatPanel
+                        workspaceId={workspaceId}
+                        activeFile={activeFile}
+                        getFileContent={(path) => {
+                            const file = openFiles.find(f => f.path === path);
+                            if (file) return fileContents[file.id];
+                            return '';
+                        }}
+                    />
                 )}
             </div>
 

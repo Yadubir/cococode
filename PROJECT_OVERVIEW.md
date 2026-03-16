@@ -85,9 +85,12 @@ A collaborative online code editor with real-time collaboration, terminal access
 
 ### Real-Time Features
 - **Document Sync**: Y.js CRDT synchronization for conflict-free editing
+- **Terminal Sync**: Synchronized terminal document state and commands
 - **Cursor Presence**: See collaborators' cursors and selections with unique colors
 - **Awareness**: User presence indicators showing who's online
-- **Chat**: Workspace-level messaging
+- **Chat**: Workspace-level messaging with persistent chat history
+- **Peer-to-Peer Calls**: Real-time audio/video WebRTC communication between collaborators
+- **Signaling Server**: Dedicated custom signaling infrastructure for establishing WebRTC connections
 
 ### Security Features
 - **JWT Authentication**: Secure token-based auth with expiry
