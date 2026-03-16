@@ -7,8 +7,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 make g++ \
     && rm -rf /var/lib/apt/lists/*
 
-# Install pnpm
-RUN npm install -g pnpm
+# Install pnpm — pin to exact same version as local (8.15.0) to avoid lockfile format mismatch
+RUN npm install -g pnpm@8.15.0
 
 # Copy server package files + the root lockfile (pnpm uses a single lockfile)
 COPY apps/server/package.json ./package.json
