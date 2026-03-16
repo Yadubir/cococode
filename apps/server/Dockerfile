@@ -7,7 +7,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 make g++ \
     && rm -rf /var/lib/apt/lists/*
 
-COPY package*.json ./
+# Copy only the server package.json — works whether built from repo root or apps/server
+COPY apps/server/package*.json ./
 RUN npm ci --omit=dev
 
 # ─── Stage 2: Production image ───────────────────────────────────────────────
@@ -31,8 +32,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copy compiled native deps from build stage
 COPY --from=deps /app/node_modules ./node_modules
 
-# Copy application source
-COPY . .
+# Copy only the server source (not the whole monorepo)
+COPY apps/server/src ./src
+COPY apps/server/package*.json ./
 
 # Create a non-root user for security
 RUN groupadd -r cococode && useradd -r -g cococode cococode \
