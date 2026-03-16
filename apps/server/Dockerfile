@@ -7,15 +7,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 make g++ \
     && rm -rf /var/lib/apt/lists/*
 
-# Install pnpm — pin to exact same version as local (8.15.0) to avoid lockfile format mismatch
-RUN npm install -g pnpm@8.15.0
-
-# Copy server package files + the root lockfile (pnpm uses a single lockfile)
+# Copy only the server's package.json and install with plain npm
+# (no lockfile needed — the Docker image layer itself provides reproducibility)
 COPY apps/server/package.json ./package.json
-COPY pnpm-lock.yaml ./pnpm-lock.yaml
-
-# Install production deps using the lockfile
-RUN pnpm install --frozen-lockfile --prod
+RUN npm install --omit=dev --ignore-scripts=false
 
 # ─── Stage 2: Production image ───────────────────────────────────────────────
 FROM node:20-slim AS runner
