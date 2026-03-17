@@ -2,8 +2,11 @@ const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const crypto = require('crypto');
 const { asyncHandler } = require('../middleware/errorHandler');
-const { authenticate } = require('../middleware/auth');
+const { authenticate, ensureWorkspaceMember } = require('../middleware/auth');
 const db = require('../services/database');
+const { cleanupWorkspaceTerminals } = require('./terminal');
+const { cleanupWorkspaceDocs } = require('../collaboration');
+const { cleanupWorkspaceCalls } = require('../websocket');
 
 const router = express.Router();
 
@@ -183,7 +186,7 @@ router.post('/invites/:code/join', authenticate, asyncHandler(async (req, res) =
  * @desc    Get workspace by ID
  * @access  Private
  */
-router.get('/:id', authenticate, asyncHandler(async (req, res) => {
+router.get('/:id', authenticate, ensureWorkspaceMember, asyncHandler(async (req, res) => {
     const workspace = await db.getWorkspaceById(req.params.id);
 
     if (!workspace) {
@@ -205,7 +208,7 @@ router.get('/:id', authenticate, asyncHandler(async (req, res) => {
  * @desc    Get workspace members
  * @access  Private
  */
-router.get('/:id/members', authenticate, asyncHandler(async (req, res) => {
+router.get('/:id/members', authenticate, ensureWorkspaceMember, asyncHandler(async (req, res) => {
     const workspace = await db.getWorkspaceById(req.params.id);
 
     if (!workspace) {
@@ -395,6 +398,55 @@ router.delete('/:id/invites/:inviteId', authenticate, asyncHandler(async (req, r
         success: true,
         message: 'Invite deleted',
     });
+}));
+
+/**
+ * @route   DELETE /api/workspaces/:id
+ * @desc    Delete a workspace and cleanup all associated data
+ * @access  Private (owner only)
+ */
+router.delete('/:id', authenticate, asyncHandler(async (req, res) => {
+    const workspaceId = req.params.id;
+    const workspace = await db.getWorkspaceById(workspaceId);
+
+    if (!workspace) {
+        return res.status(403).json({
+            success: false,
+            error: 'ForbiddenError',
+            message: 'Only the workspace owner can delete it',
+        });
+    }
+
+    // Capture io instance for call cleanup
+    // index.js exports { app, io }
+    const { io } = require('../index');
+
+    // Orchestrate cleanup
+    try {
+        // 1. Terminate all terminal sessions (now async)
+        await cleanupWorkspaceTerminals(workspaceId);
+
+        // 2. Clear all collaborative documents from memory
+        cleanupWorkspaceDocs(workspaceId);
+
+        // 3. End all active calls
+        cleanupWorkspaceCalls(io, workspaceId);
+
+        // 4. Delete from database (cascades to members, files, invites, messages)
+        await db.deleteWorkspace(workspaceId);
+
+        res.json({
+            success: true,
+            message: 'Workspace and all associated data deleted successfully',
+        });
+    } catch (error) {
+        console.error('Error during workspace deletion:', error);
+        res.status(500).json({
+            success: false,
+            error: 'DeletionError',
+            message: 'Failed to delete workspace and cleanup associated data',
+        });
+    }
 }));
 
 module.exports = router;

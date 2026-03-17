@@ -11,7 +11,9 @@ import {
     Share2,
     Code2,
     Sparkles,
-    Github
+    Github,
+    AlertCircle,
+    Loader2
 } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
 import api from '../../services/api';
@@ -23,6 +25,7 @@ function Dashboard() {
     const { user } = useAuthStore();
     const [showNewModal, setShowNewModal] = useState(false);
     const [showAIAssistant, setShowAIAssistant] = useState(false);
+    const [deleteModal, setDeleteModal] = useState({ show: false, workspaceId: null, workspaceName: '' });
     const [newWorkspaceName, setNewWorkspaceName] = useState('');
 
     const githubLinked = new URLSearchParams(window.location.search).get('github_linked');
@@ -55,10 +58,28 @@ function Dashboard() {
         },
     });
 
+    // Delete workspace mutation
+    const deleteWorkspace = useMutation({
+        mutationFn: async (id) => {
+            const response = await api.delete(`/workspaces/${id}`);
+            return response.data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries(['workspaces']);
+            setDeleteModal({ show: false, workspaceId: null, workspaceName: '' });
+        },
+    });
+
     const handleCreateWorkspace = (e) => {
         e.preventDefault();
         if (newWorkspaceName.trim()) {
             createWorkspace.mutate(newWorkspaceName.trim());
+        }
+    };
+
+    const handleDeleteWorkspace = () => {
+        if (deleteModal.workspaceId) {
+            deleteWorkspace.mutate(deleteModal.workspaceId);
         }
     };
 
@@ -128,6 +149,11 @@ function Dashboard() {
                                 key={workspace.id}
                                 workspace={workspace}
                                 onClick={() => navigate(`/workspace/${workspace.id}`)}
+                                onDelete={() => setDeleteModal({
+                                    show: true,
+                                    workspaceId: workspace.id,
+                                    workspaceName: workspace.name
+                                })}
                             />
                         ))}
                     </div>
@@ -183,6 +209,43 @@ function Dashboard() {
                 </div>
             )}
 
+            {/* Delete Confirmation Modal */}
+            {deleteModal.show && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <div className="bg-editor-sidebar rounded-xl p-6 w-full max-w-md border border-editor-border shadow-2xl">
+                        <div className="flex items-center gap-3 text-red-500 mb-4">
+                            <AlertCircle className="w-6 h-6" />
+                            <h3 className="text-xl font-semibold">Delete Workspace?</h3>
+                        </div>
+                        <p className="text-editor-text mb-6">
+                            Are you sure you want to delete <span className="font-bold text-white">"{deleteModal.workspaceName}"</span>? 
+                            This action is permanent and will delete all files, chat history, and active sessions.
+                        </p>
+                        <div className="flex gap-3 justify-end">
+                            <button
+                                type="button"
+                                onClick={() => setDeleteModal({ show: false, workspaceId: null, workspaceName: '' })}
+                                className="btn btn-secondary"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleDeleteWorkspace}
+                                disabled={deleteWorkspace.isPending}
+                                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors font-medium disabled:opacity-50 flex items-center gap-2"
+                            >
+                                {deleteWorkspace.isPending ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        Cleaning up...
+                                    </>
+                                ) : 'Delete Permanently'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* AI Assistant Modal */}
             <AIAssistant
                 isOpen={showAIAssistant}
@@ -192,27 +255,44 @@ function Dashboard() {
     );
 }
 
-function WorkspaceCard({ workspace, onClick }) {
+function WorkspaceCard({ workspace, onClick, onDelete }) {
     const [showMenu, setShowMenu] = useState(false);
 
     return (
         <div
             onClick={onClick}
-            className="bg-editor-sidebar rounded-xl p-5 border border-editor-border hover:border-editor-accent/50 cursor-pointer transition-all hover:shadow-lg group"
+            className="bg-editor-sidebar rounded-xl p-5 border border-editor-border hover:border-editor-accent/50 cursor-pointer transition-all hover:shadow-lg group relative"
         >
             <div className="flex items-start justify-between mb-4">
                 <div className="p-2 bg-editor-accent/20 rounded-lg">
                     <FolderOpen className="w-6 h-6 text-editor-accent" />
                 </div>
-                <button
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        setShowMenu(!showMenu);
-                    }}
-                    className="p-1 hover:bg-editor-active rounded opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                    <MoreVertical className="w-4 h-4" />
-                </button>
+                <div className="relative">
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setShowMenu(!showMenu);
+                        }}
+                        className="p-1 hover:bg-editor-active rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                        <MoreVertical className="w-4 h-4" />
+                    </button>
+                    {showMenu && (
+                        <div className="absolute right-0 mt-1 w-48 bg-editor-sidebar border border-editor-border rounded-lg shadow-xl z-10 overflow-hidden">
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setShowMenu(false);
+                                    onDelete();
+                                }}
+                                className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors text-left"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                                Delete Workspace
+                            </button>
+                        </div>
+                    )}
+                </div>
             </div>
 
             <h3 className="font-semibold text-white mb-2">{workspace.name}</h3>

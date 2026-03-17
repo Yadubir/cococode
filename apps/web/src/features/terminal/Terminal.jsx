@@ -7,7 +7,7 @@ import { X, Plus, Maximize2, Minimize2 } from 'lucide-react';
 import { getSocket } from '../../services/socket';
 import api from '../../services/api';
 
-function Terminal({ onClose, isMaximized, onToggleMaximize, onSessionChange }) {
+function Terminal({ workspaceId, onClose, isMaximized, onToggleMaximize, onSessionChange }) {
     const terminalRef = useRef(null);
     const xtermRef = useRef(null);
     const fitAddonRef = useRef(null);
@@ -112,7 +112,7 @@ function Terminal({ onClose, isMaximized, onToggleMaximize, onSessionChange }) {
             setIsConnecting(true);
             setError(null);
 
-            const response = await api.post('/terminal/create');
+            const response = await api.post('/terminal/create', { workspaceId });
             const { sessionId: newSessionId } = response.data.data;
             setSessionId(newSessionId);
             onSessionChange?.(newSessionId);

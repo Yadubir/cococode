@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import {
     Loader2, Play, Save, TerminalSquare, AlertCircle, Maximize2, Minimize2, Sparkles, MessageSquare,
-    X, File, Circle, Terminal as TerminalIcon, Users, Bot
+    X, File, Circle, Terminal as TerminalIcon, Users, Bot, Phone
 } from 'lucide-react';
 import MonacoEditor, { useMonaco } from '@monaco-editor/react';
 // import { useAuthStore } from '../../stores/authStore';
@@ -46,6 +46,8 @@ function Editor() {
     const [editorInstance, setEditorInstance] = useState(null);
     const [showChat, setShowChat] = useState(false);
     const [showAI, setShowAI] = useState(false);
+    const [inCall, setInCall] = useState(false);
+    const joinCallRef = useRef(null);
 
     const monaco = useMonaco();
     useAICompletions(monaco, editorInstance);
@@ -290,6 +292,18 @@ function Editor() {
                         )}
 
                         <div className="ml-auto flex items-center pr-2 gap-1">
+                            {/* Join Voice/Video button */}
+                            {workspaceId && !inCall && (
+                                <button
+                                    onClick={() => joinCallRef.current?.()}
+                                    className="flex items-center gap-1.5 px-3 py-1 text-xs text-white bg-green-600 hover:bg-green-700 rounded-full transition-colors"
+                                    title="Join Voice/Video Call"
+                                >
+                                    <Phone className="w-3 h-3" />
+                                    Join Call
+                                </button>
+                            )}
+
                             {/* Run button */}
                             {activeFile && (
                                 <button
@@ -431,6 +445,7 @@ function Editor() {
             {/* Terminal Panel */}
             <div style={{ display: showTerminal ? 'block' : 'none' }}>
                 <Terminal
+                    workspaceId={workspaceId}
                     onClose={() => setShowTerminal(false)}
                     isMaximized={isTerminalMaximized}
                     onToggleMaximize={() => setIsTerminalMaximized(!isTerminalMaximized)}
@@ -439,7 +454,13 @@ function Editor() {
             </div>
 
             {/* Voice/Video Call Manager */}
-            {workspaceId && <CallManager workspaceId={workspaceId} />}
+            {workspaceId && (
+                <CallManager
+                    workspaceId={workspaceId}
+                    onSetJoinCall={(fn) => { joinCallRef.current = fn; }}
+                    onCallStateChange={(active) => setInCall(active)}
+                />
+            )}
 
             {/* Command Palette */}
             <CommandPalette

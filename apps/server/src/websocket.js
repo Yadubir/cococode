@@ -1,5 +1,9 @@
 const jwt = require('jsonwebtoken');
 const logger = require('./utils/logger');
+const db = require('./services/database');
+
+const callUsersMap = new Map(); // socket.id -> workspaceId
+const workspaceCallsMap = new Map(); // workspaceId -> Set of socket.ids
 
 /**
  * WebSocket server setup for real-time collaboration
@@ -45,22 +49,38 @@ const setupWebSocket = (io, setupTerminalSocket) => {
         /**
          * Join a document for collaborative editing
          */
-        socket.on('document:join', ({ documentId }) => {
-            socket.join(`doc:${documentId}`);
+        socket.on('document:join', async ({ documentId }) => {
+            try {
+                if (!documentId) return;
+                const [workspaceId] = documentId.split(':');
+                if (!workspaceId) return;
 
-            if (!documentUsers.has(documentId)) {
-                documentUsers.set(documentId, new Set());
+                const isMember = await db.isWorkspaceMember(workspaceId, user.id);
+                
+                if (!isMember) {
+                    logger.warn(`Unauthorized document join attempt: ${user.email} -> ${documentId}`);
+                    socket.emit('error', { message: 'Access denied: You are not a member of this workspace' });
+                    return;
+                }
+
+                socket.join(`doc:${documentId}`);
+
+                if (!documentUsers.has(documentId)) {
+                    documentUsers.set(documentId, new Set());
+                }
+                documentUsers.get(documentId).add(socket.id);
+
+                // Notify others in the document
+                const users = Array.from(documentUsers.get(documentId))
+                    .map(id => userSockets.get(id))
+                    .filter(Boolean);
+
+                io.to(`doc:${documentId}`).emit('document:users', { users });
+
+                logger.info(`${user.email} joined document: ${documentId}`);
+            } catch (error) {
+                logger.error(`Error in document:join for ${user.email}:`, error);
             }
-            documentUsers.get(documentId).add(socket.id);
-
-            // Notify others in the document
-            const users = Array.from(documentUsers.get(documentId))
-                .map(id => userSockets.get(id))
-                .filter(Boolean);
-
-            io.to(`doc:${documentId}`).emit('document:users', { users });
-
-            logger.info(`${user.email} joined document: ${documentId}`);
         });
 
         /**
@@ -111,8 +131,14 @@ const setupWebSocket = (io, setupTerminalSocket) => {
          */
         socket.on('chat:message', async ({ workspaceId, message }) => {
             try {
+                const isMember = await db.isWorkspaceMember(workspaceId, user.id);
+                if (!isMember) {
+                    logger.warn(`Unauthorized chat attempt from ${user.email} in workspace ${workspaceId}`);
+                    return;
+                }
+                
                 // Save to database
-                const dbMessage = await require('./services/database').createMessage({
+                const dbMessage = await db.createMessage({
                     workspaceId,
                     userId: user.id,
                     content: message
@@ -128,26 +154,39 @@ const setupWebSocket = (io, setupTerminalSocket) => {
                     timestamp: dbMessage.createdAt,
                 });
             } catch (error) {
-                logger.error('Error saving chat message:', error);
+                logger.error('Error in chat:message:', error);
             }
         });
 
         /**
          * Join workspace for general notifications
          */
-        socket.on('workspace:join', ({ workspaceId }) => {
-            socket.join(`workspace:${workspaceId}`);
-            logger.info(`${user.email} joined workspace: ${workspaceId}`);
+        socket.on('workspace:join', async ({ workspaceId }) => {
+            try {
+                const isMember = await db.isWorkspaceMember(workspaceId, user.id);
+                if (!isMember) {
+                    logger.warn(`Unauthorized workspace join attempt from ${user.email} for ${workspaceId}`);
+                    return;
+                }
+
+                socket.join(`workspace:${workspaceId}`);
+                logger.info(`${user.email} joined workspace: ${workspaceId}`);
+            } catch (error) {
+                logger.error('Error in workspace:join:', error);
+            }
         });
 
         // ==========================
         // WEBRTC SIGNALING (VOICE/VIDEO)
         // ==========================
 
-        const callUsersMap = new Map(); // socket.id -> workspaceId
-        const workspaceCallsMap = new Map(); // workspaceId -> Set of socket.ids
+        socket.on('webrtc:join-call', async ({ workspaceId, userId }) => {
+            const isMember = await require('./services/database').isWorkspaceMember(workspaceId, user.id);
+            if (!isMember) {
+                socket.emit('webrtc:error', { message: 'Access denied' });
+                return;
+            }
 
-        socket.on('webrtc:join-call', ({ workspaceId, userId }) => {
             // Track the user in the call room
             socket.join(`call:${workspaceId}`);
             callUsersMap.set(socket.id, workspaceId);
@@ -244,4 +283,27 @@ const generateUserColor = (userId) => {
     return colors[Math.abs(hash) % colors.length];
 };
 
-module.exports = setupWebSocket;
+/**
+ * Cleanup all active calls for a workspace
+ */
+const cleanupWorkspaceCalls = (io, workspaceId) => {
+    logger.info(`Cleaning up WebRTC calls for workspace: ${workspaceId}`);
+    
+    if (workspaceCallsMap.has(workspaceId)) {
+        const usersInCall = workspaceCallsMap.get(workspaceId);
+        
+        // Notify all users in the call room
+        io.to(`call:${workspaceId}`).emit('webrtc:call-ended', { workspaceId });
+        
+        // Clear maps
+        for (const socketId of usersInCall) {
+            callUsersMap.delete(socketId);
+        }
+        workspaceCallsMap.delete(workspaceId);
+    }
+};
+
+module.exports = {
+    setupWebSocket,
+    cleanupWorkspaceCalls
+};

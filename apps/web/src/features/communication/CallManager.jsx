@@ -1,15 +1,25 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Peer from 'simple-peer';
-import { Mic, MicOff, Video, VideoOff, PhoneOff, Phone, User as UserIcon } from 'lucide-react';
+import { Mic, MicOff, Video, VideoOff, PhoneOff, User as UserIcon, GripHorizontal, GripVertical } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
 import { getSocket } from '../../services/socket';
 
-function CallManager({ workspaceId }) {
+function CallManager({ workspaceId, onSetJoinCall, onCallStateChange }) {
     const { user } = useAuthStore();
     const [inCall, setInCall] = useState(false);
     const [hasAudio, setHasAudio] = useState(true);
     const [hasVideo, setHasVideo] = useState(true);
     const [peers, setPeers] = useState([]);
+
+    // Draggable dialog state
+    const [position, setPosition] = useState({ x: 80, y: 80 });
+    const dragging = useRef(false);
+    const dragOffset = useRef({ x: 0, y: 0 });
+
+    // Resizable dialog state
+    const [size, setSize] = useState({ width: 360, height: 300 });
+    const resizing = useRef(false);
+    const resizeStart = useRef({ x: 200, y: 0, width: 0, height: 0 });
 
     const userVideo = useRef();
     const peersRef = useRef([]);
@@ -33,7 +43,6 @@ function CallManager({ workspaceId }) {
             console.log(`[WebRTC] User ${payload.callerId} joined! I am initiating connection.`);
             if (!streamRef.current) return;
 
-            // Deduplicate safely
             if (peersRef.current.find(p => p.peerId === payload.callerId)) return;
 
             const peer = createPeer(payload.callerId, socket.id, streamRef.current);
@@ -54,7 +63,6 @@ function CallManager({ workspaceId }) {
                 console.log(`[WebRTC] Received incoming offer from ${callerSessionId}`);
                 if (!streamRef.current) return;
 
-                // Final safeguard against duplication
                 if (peersRef.current.find(p => p.peerId === callerSessionId)) return;
 
                 const peer = addPeer(payload.signal, callerSessionId, streamRef.current);
@@ -88,7 +96,6 @@ function CallManager({ workspaceId }) {
             socket.on('webrtc:signal', handleSignal);
             socket.on('webrtc:user-left', handleUserLeft);
 
-            // Wait slightly for the event listeners to attach before emitting join-call
             socket.emit('webrtc:join-call', { workspaceId, userId: user.id });
         }
 
@@ -106,22 +113,28 @@ function CallManager({ workspaceId }) {
         }
     };
 
-    const joinCall = () => {
+    const joinCall = useCallback(() => {
         navigator.mediaDevices
             .getUserMedia({ video: true, audio: true })
             .then((stream) => {
-                setInCall(true);
                 streamRef.current = stream;
                 setInCall(true);
+                onCallStateChange?.(true);
             })
             .catch((err) => {
                 console.error("Failed to get local stream", err);
                 alert("Could not access camera/microphone");
             });
-    };
+    }, [onCallStateChange]);
+
+    // Expose joinCall to parent via callback
+    useEffect(() => {
+        onSetJoinCall?.(joinCall);
+    }, [joinCall, onSetJoinCall]);
 
     const leaveCall = () => {
         setInCall(false);
+        onCallStateChange?.(false);
         socketRef.current.emit('webrtc:leave-call', { workspaceId });
 
         peersRef.current.forEach((peerObj) => {
@@ -214,6 +227,60 @@ function CallManager({ workspaceId }) {
         }
     };
 
+    // Drag handlers
+    const handleDragStart = (e) => {
+        dragging.current = true;
+        dragOffset.current = {
+            x: e.clientX - position.x,
+            y: e.clientY - position.y,
+        };
+
+        const handleMouseMove = (e) => {
+            if (!dragging.current) return;
+            setPosition({
+                x: e.clientX - dragOffset.current.x,
+                y: e.clientY - dragOffset.current.y,
+            });
+        };
+
+        const handleMouseUp = () => {
+            dragging.current = false;
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleMouseUp);
+        };
+
+        window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('mouseup', handleMouseUp);
+    };
+
+    // Resize handler (bottom-right corner)
+    const handleResizeStart = (e) => {
+        e.stopPropagation();
+        resizing.current = true;
+        resizeStart.current = {
+            x: e.clientX,
+            y: e.clientY,
+            width: size.width,
+            height: size.height,
+        };
+
+        const handleMouseMove = (e) => {
+            if (!resizing.current) return;
+            const newWidth = Math.max(320, resizeStart.current.width + (e.clientX - resizeStart.current.x));
+            const newHeight = Math.max(240, resizeStart.current.height + (e.clientY - resizeStart.current.y));
+            setSize({ width: newWidth, height: newHeight });
+        };
+
+        const handleMouseUp = () => {
+            resizing.current = false;
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleMouseUp);
+        };
+
+        window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('mouseup', handleMouseUp);
+    };
+
     // Sub-component to render individual peer video
     const VideoPeer = ({ peer }) => {
         const ref = useRef();
@@ -240,83 +307,95 @@ function CallManager({ workspaceId }) {
         );
     };
 
+    if (!inCall) return null;
+
     return (
-        <>
-            {/* Join Call Button (Fixed Bottom Left) */}
-            {!inCall && (
-                <div className="absolute bottom-4 left-64 z-50">
-                    <button
-                        onClick={joinCall}
-                        className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 text-sm font-medium rounded-full shadow-lg transition-colors"
-                    >
-                        <Phone className="w-4 h-4" />
-                        Join Voice/Video
-                    </button>
-                </div>
-            )}
+        /* Draggable + Resizable Active Call Dialog */
+        <div
+            className="fixed z-50 flex flex-col bg-editor-bg border border-editor-border rounded-xl shadow-2xl overflow-hidden"
+            style={{
+                left: position.x,
+                top: position.y,
+                width: size.width,
+                height: size.height,
+                minWidth: 320,
+                minHeight: 240,
+            }}
+        >
+            {/* Drag Handle */}
+            <div
+                onMouseDown={handleDragStart}
+                className="flex items-center justify-between px-4 py-2 border-b border-editor-border cursor-grab active:cursor-grabbing select-none rounded-t-xl bg-editor-sidebar"
+            >
+                <span className="text-xs font-semibold text-editor-text-dim uppercase tracking-widest">Voice / Video</span>
+                <GripHorizontal className="w-4 h-4 text-editor-text-dim" />
+            </div>
 
-            {/* Active Call Floating UI */}
-            {inCall && (
-                <div className="absolute bottom-4 left-64 z-50 flex flex-col items-stretch bg-editor-bg border border-editor-border p-4 rounded-xl shadow-2xl w-[800px] max-w-[calc(100vw-300px)]">
-
-                    {/* Video Grid */}
-                    <div className="grid grid-cols-2 gap-3 mb-3 p-1 max-h-[60vh] overflow-y-auto">
-                        {/* Local Video */}
-                        <div className="relative aspect-video">
-                            <video
-                                playsInline
-                                muted
-                                ref={userVideo}
-                                autoPlay
-                                className={`w-full h-full bg-black rounded-lg object-cover border-2 border-editor-accent shadow-md ${!hasVideo ? 'hidden' : ''}`}
-                            />
-                            {!hasVideo && (
-                                <div className="w-full h-full bg-editor-sidebar rounded-lg border-2 border-editor-accent flex justify-center items-center shadow-md">
-                                    <UserIcon className="w-10 h-10 text-editor-text-dim" />
-                                </div>
-                            )}
-                            <div className="absolute bottom-1.5 left-2 text-[10px] font-bold bg-black/60 px-1.5 py-0.5 rounded text-white shadow">
-                                You
-                            </div>
+            {/* Video Grid — fills available space */}
+            <div className="flex-1 grid grid-cols-2 gap-3 p-3 overflow-y-auto">
+                {/* Local Video */}
+                <div className="relative aspect-video">
+                    <video
+                        playsInline
+                        muted
+                        ref={userVideo}
+                        autoPlay
+                        className={`w-full h-full bg-black rounded-lg object-cover border-2 border-editor-accent shadow-md ${!hasVideo ? 'hidden' : ''}`}
+                    />
+                    {!hasVideo && (
+                        <div className="w-full h-full bg-editor-sidebar rounded-lg border-2 border-editor-accent flex justify-center items-center shadow-md aspect-video">
+                            <UserIcon className="w-10 h-10 text-editor-text-dim" />
                         </div>
-
-                        {/* Remote Videos */}
-                        {peers.map((peerObj) => (
-                            <div key={peerObj.peerId} className="relative aspect-video">
-                                <VideoPeer peer={peerObj.peer} />
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* Controls */}
-                    <div className="flex items-center self-center gap-3">
-                        <button
-                            onClick={toggleMute}
-                            className={`p-2.5 rounded-full text-white transition-colors ${hasAudio ? 'bg-editor-active hover:bg-editor-border' : 'bg-red-500 hover:bg-red-600'}`}
-                            title={hasAudio ? "Mute Microphone" : "Unmute Microphone"}
-                        >
-                            {hasAudio ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
-                        </button>
-
-                        <button
-                            onClick={toggleVideo}
-                            className={`p-2.5 rounded-full text-white transition-colors ${hasVideo ? 'bg-editor-active hover:bg-editor-border' : 'bg-red-500 hover:bg-red-600'}`}
-                            title={hasVideo ? "Turn Off Camera" : "Turn On Camera"}
-                        >
-                            {hasVideo ? <Video className="w-4 h-4" /> : <VideoOff className="w-4 h-4" />}
-                        </button>
-
-                        <button
-                            onClick={leaveCall}
-                            className="p-2.5 rounded-full bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-500/20 ml-2"
-                            title="Leave Call"
-                        >
-                            <PhoneOff className="w-4 h-4" />
-                        </button>
+                    )}
+                    <div className="absolute bottom-1.5 left-2 text-[10px] font-bold bg-black/60 px-1.5 py-0.5 rounded text-white shadow">
+                        You
                     </div>
                 </div>
-            )}
-        </>
+
+                {/* Remote Videos */}
+                {peers.map((peerObj) => (
+                    <div key={peerObj.peerId} className="relative aspect-video">
+                        <VideoPeer peer={peerObj.peer} />
+                    </div>
+                ))}
+            </div>
+
+            {/* Controls + Resize Handle */}
+            <div className="relative flex items-center justify-center gap-3 px-4 py-3 border-t border-editor-border flex-shrink-0">
+                <button
+                    onClick={toggleMute}
+                    className={`p-2.5 rounded-full text-white transition-colors ${hasAudio ? 'bg-editor-active hover:bg-editor-border' : 'bg-red-500 hover:bg-red-600'}`}
+                    title={hasAudio ? "Mute Microphone" : "Unmute Microphone"}
+                >
+                    {hasAudio ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
+                </button>
+
+                <button
+                    onClick={toggleVideo}
+                    className={`p-2.5 rounded-full text-white transition-colors ${hasVideo ? 'bg-editor-active hover:bg-editor-border' : 'bg-red-500 hover:bg-red-600'}`}
+                    title={hasVideo ? "Turn Off Camera" : "Turn On Camera"}
+                >
+                    {hasVideo ? <Video className="w-4 h-4" /> : <VideoOff className="w-4 h-4" />}
+                </button>
+
+                <button
+                    onClick={leaveCall}
+                    className="p-2.5 rounded-full bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-500/20 ml-2"
+                    title="Leave Call"
+                >
+                    <PhoneOff className="w-4 h-4" />
+                </button>
+
+                {/* Resize handle — bottom-right corner */}
+                <div
+                    onMouseDown={handleResizeStart}
+                    className="absolute bottom-1 right-1 w-5 h-5 flex items-end justify-end cursor-se-resize text-editor-text-dim hover:text-editor-text select-none"
+                    title="Drag to resize"
+                >
+                    <GripVertical className="w-3.5 h-3.5 rotate-45" />
+                </div>
+            </div>
+        </div>
     );
 }
 

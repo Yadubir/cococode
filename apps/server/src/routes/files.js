@@ -1,7 +1,7 @@
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const { asyncHandler } = require('../middleware/errorHandler');
-const { authenticate } = require('../middleware/auth');
+const { authenticate, ensureWorkspaceMember } = require('../middleware/auth');
 const db = require('../services/database');
 
 const router = express.Router();
@@ -11,7 +11,7 @@ const router = express.Router();
  * @desc    Get file tree for workspace
  * @access  Private
  */
-router.get('/:workspaceId', authenticate, asyncHandler(async (req, res) => {
+router.get('/:workspaceId', authenticate, ensureWorkspaceMember, asyncHandler(async (req, res) => {
     const { workspaceId } = req.params;
 
     const result = await db.query(
@@ -38,7 +38,7 @@ router.get('/:workspaceId', authenticate, asyncHandler(async (req, res) => {
  * @desc    Get file content
  * @access  Private
  */
-router.get('/:workspaceId/:fileId', authenticate, asyncHandler(async (req, res) => {
+router.get('/:workspaceId/:fileId', authenticate, ensureWorkspaceMember, asyncHandler(async (req, res) => {
     const { workspaceId, fileId } = req.params;
 
     const result = await db.query(
@@ -76,7 +76,7 @@ router.get('/:workspaceId/:fileId', authenticate, asyncHandler(async (req, res) 
  * @desc    Create a new file
  * @access  Private
  */
-router.post('/:workspaceId', authenticate, asyncHandler(async (req, res) => {
+router.post('/:workspaceId', authenticate, ensureWorkspaceMember, asyncHandler(async (req, res) => {
     const { workspaceId } = req.params;
     const { path, name, type = 'file', content = '' } = req.body;
 
@@ -124,7 +124,7 @@ router.post('/:workspaceId', authenticate, asyncHandler(async (req, res) => {
  * @desc    Update file content
  * @access  Private
  */
-router.put('/:workspaceId/:fileId', authenticate, asyncHandler(async (req, res) => {
+router.put('/:workspaceId/:fileId', authenticate, ensureWorkspaceMember, asyncHandler(async (req, res) => {
     const { workspaceId, fileId } = req.params;
     const { content } = req.body;
 
@@ -164,7 +164,7 @@ router.put('/:workspaceId/:fileId', authenticate, asyncHandler(async (req, res) 
  * @desc    Delete a file
  * @access  Private
  */
-router.delete('/:workspaceId/:fileId', authenticate, asyncHandler(async (req, res) => {
+router.delete('/:workspaceId/:fileId', authenticate, ensureWorkspaceMember, asyncHandler(async (req, res) => {
     const { workspaceId, fileId } = req.params;
 
     const result = await db.query(

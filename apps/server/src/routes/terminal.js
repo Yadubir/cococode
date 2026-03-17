@@ -3,7 +3,7 @@ const pty = require('node-pty');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { authenticate } = require('../middleware/auth');
+const { authenticate, ensureWorkspaceMember } = require('../middleware/auth');
 const logger = require('../utils/logger');
 
 const router = express.Router();
@@ -24,7 +24,8 @@ const SHELL = (() => {
 /**
  * Create a new terminal session with PTY
  */
-router.post('/create', authenticate, (req, res) => {
+router.post('/create', authenticate, ensureWorkspaceMember, (req, res) => {
+    const { workspaceId } = req.body;
     const sessionId = `${req.user.id}-${Date.now()}`;
     const tempDir = path.join(os.tmpdir(), 'cococode', sessionId);
 
@@ -82,6 +83,7 @@ router.post('/create', authenticate, (req, res) => {
 
         const session = {
             userId: req.user.id,
+            workspaceId,
             createdAt: new Date(),
             pty: ptyProcess,
             tempDir,
@@ -220,6 +222,37 @@ router.delete('/:sessionId', authenticate, (req, res) => {
 });
 
 /**
+ * Cleanup all terminal sessions for a workspace
+ */
+const cleanupWorkspaceTerminals = async (workspaceId) => {
+    logger.info(`Cleaning up terminal sessions for workspace: ${workspaceId}`);
+    
+    for (const [sessionId, session] of terminalSessions.entries()) {
+        if (session.workspaceId === workspaceId) {
+            try {
+                if (session.pty) {
+                    session.pty.kill();
+                }
+            } catch (e) {
+                logger.warn(`Failed to kill PTY ${sessionId} during workspace cleanup:`, e);
+            }
+
+            // Cleanup temp dir
+            if (session.tempDir && session.tempDir.includes('cococode')) {
+                try {
+                    // Use async rm for non-blocking cleanup
+                    await fs.promises.rm(session.tempDir, { recursive: true, force: true });
+                } catch (e) {
+                    logger.error(`Failed to cleanup session dir ${session.tempDir} during workspace cleanup:`, e);
+                }
+            }
+
+            terminalSessions.delete(sessionId);
+        }
+    }
+};
+
+/**
  * WebSocket handler for terminal I/O
  */
 const setupTerminalSocket = (socket) => {
@@ -279,4 +312,4 @@ const setupTerminalSocket = (socket) => {
     });
 };
 
-module.exports = { router, setupTerminalSocket, terminalSessions };
+module.exports = { router, setupTerminalSocket, terminalSessions, cleanupWorkspaceTerminals };

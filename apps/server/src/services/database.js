@@ -126,6 +126,10 @@ const getWorkspacesByUserId = async (userId) => {
     }
 };
 
+const deleteWorkspace = async (id) => {
+    await query('DELETE FROM workspaces WHERE id = $1', [id]);
+};
+
 // ===================
 // INVITE OPERATIONS
 // ===================
@@ -391,6 +395,7 @@ module.exports = {
     createWorkspace,
     getWorkspaceById,
     getWorkspacesByUserId,
+    deleteWorkspace,
     createInvite,
     getInviteByCode,
     getInvitesByWorkspace,

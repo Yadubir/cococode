@@ -15,7 +15,7 @@ const { router: terminalRoutes, setupTerminalSocket } = require('./routes/termin
 const aiRoutes = require('./routes/ai');
 const gitRoutes = require('./routes/git');
 
-const setupWebSocket = require('./websocket');
+const { setupWebSocket } = require('./websocket');
 const { setupCollaborationServer } = require('./collaboration');
 const logger = require('./utils/logger');
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');

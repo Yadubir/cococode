@@ -2,6 +2,7 @@ const { WebsocketProvider } = require('y-websocket');
 const Y = require('yjs');
 const jwt = require('jsonwebtoken');
 const logger = require('./utils/logger');
+const db = require('./services/database');
 
 // Store active Y.js documents
 const ydocs = new Map();
@@ -35,73 +36,114 @@ const setupCollaborationServer = (io) => {
 
         let currentDocId = null;
 
-        // Join a document for collaborative editing
-        socket.on('doc:join', ({ documentId }) => {
-            currentDocId = documentId;
-            socket.join(`doc:${documentId}`);
+        /**
+         * Helper to get or create a document with membership check
+         */
+        const getOrCreateDoc = async (documentId) => {
+            if (!documentId) return null;
+            const [workspaceId] = documentId.split(':');
+            if (!workspaceId) return null;
 
-            // Get or create Y.js document
+            const isMember = await db.isWorkspaceMember(workspaceId, socket.user.id);
+            if (!isMember) {
+                logger.warn(`Unauthorized access attempt from ${socket.user.email} for document ${documentId}`);
+                return null;
+            }
+
             if (!ydocs.has(documentId)) {
+                logger.info(`Lazy initializing ydoc for ${documentId}`);
                 const ydoc = new Y.Doc();
                 ydocs.set(documentId, ydoc);
                 awareness.set(documentId, new Map());
+                // In a real app, you'd load the latest state from DB here
             }
+            return ydocs.get(documentId);
+        };
 
-            // Send initial document state
-            const ydoc = ydocs.get(documentId);
-            const state = Y.encodeStateAsUpdate(ydoc);
-            socket.emit('doc:sync', {
-                documentId,
-                state: Array.from(state)
-            });
+        // Join a document for collaborative editing
+        socket.on('doc:join', async ({ documentId }) => {
+            try {
+                const ydoc = await getOrCreateDoc(documentId);
+                if (!ydoc) {
+                    socket.emit('error', { message: 'Access denied' });
+                    return;
+                }
 
-            // Send current awareness states
-            const docAwareness = awareness.get(documentId);
-            const awarenessStates = {};
-            docAwareness.forEach((state, odId) => {
-                awarenessStates[odId] = state;
-            });
-            socket.emit('awareness:sync', { documentId, states: awarenessStates });
+                currentDocId = documentId;
+                socket.join(`doc:${documentId}`);
 
-            logger.info(`User ${socket.user.email} joined document: ${documentId}`);
+                // Send initial document state
+                const state = Y.encodeStateAsUpdate(ydoc);
+                socket.emit('doc:sync', {
+                    documentId,
+                    state: Array.from(state)
+                });
+
+                // Send current awareness states
+                const docAwareness = awareness.get(documentId);
+                const awarenessStates = {};
+                docAwareness.forEach((state, odId) => {
+                    awarenessStates[odId] = state;
+                });
+                socket.emit('awareness:sync', { documentId, states: awarenessStates });
+
+                logger.info(`User ${socket.user.email} joined document: ${documentId}`);
+            } catch (error) {
+                logger.error('Error in doc:join:', error);
+            }
         });
 
         // Handle document updates
-        socket.on('doc:update', ({ documentId, update }) => {
-            const ydoc = ydocs.get(documentId);
-            if (ydoc) {
-                // Apply update to server-side Y.js document
-                const updateArray = new Uint8Array(update);
-                Y.applyUpdate(ydoc, updateArray);
+        socket.on('doc:update', async ({ documentId, update }) => {
+            try {
+                const ydoc = await getOrCreateDoc(documentId);
+                if (ydoc) {
+                    // Apply update to server-side Y.js document
+                    const updateArray = new Uint8Array(update);
+                    Y.applyUpdate(ydoc, updateArray);
 
-                // Broadcast to other clients
-                socket.to(`doc:${documentId}`).emit('doc:update', {
-                    documentId,
-                    update
-                });
+                    // Broadcast to other clients
+                    socket.to(`doc:${documentId}`).emit('doc:update', {
+                        documentId,
+                        update
+                    });
+                }
+            } catch (error) {
+                logger.error('Error in doc:update:', error);
             }
         });
 
         // Handle awareness updates (cursor, selection, user info)
-        socket.on('awareness:update', ({ documentId, clientId, state }) => {
-            const docAwareness = awareness.get(documentId);
-            if (docAwareness) {
-                docAwareness.set(clientId, {
-                    ...state,
-                    user: {
-                        id: socket.user.id,
-                        name: socket.user.name,
-                        email: socket.user.email,
-                        color: generateUserColor(socket.user.id),
-                    },
-                });
+        socket.on('awareness:update', async ({ documentId, clientId, state }) => {
+            try {
+                const docAwarenessMap = awareness.get(documentId);
+                // If it's missing, we try to authorize and create it
+                if (!docAwarenessMap) {
+                    const ydoc = await getOrCreateDoc(documentId);
+                    if (!ydoc) return;
+                }
 
-                // Broadcast to other clients
-                socket.to(`doc:${documentId}`).emit('awareness:update', {
-                    documentId,
-                    clientId,
-                    state: docAwareness.get(clientId),
-                });
+                const docAwareness = awareness.get(documentId);
+                if (docAwareness) {
+                    docAwareness.set(clientId, {
+                        ...state,
+                        user: {
+                            id: socket.user.id,
+                            name: socket.user.name,
+                            email: socket.user.email,
+                            color: generateUserColor(socket.user.id),
+                        },
+                    });
+
+                    // Broadcast to other clients
+                    socket.to(`doc:${documentId}`).emit('awareness:update', {
+                        documentId,
+                        clientId,
+                        state: docAwareness.get(clientId),
+                    });
+                }
+            } catch (error) {
+                logger.error('Error in awareness:update:', error);
             }
         });
 
@@ -200,10 +242,27 @@ const loadDocument = (documentId, savedState) => {
     return ydoc;
 };
 
+/**
+ * Cleanup all collaborative documents for a workspace
+ */
+const cleanupWorkspaceDocs = (workspaceId) => {
+    logger.info(`Cleaning up collaborative documents for workspace: ${workspaceId}`);
+    
+    // Cleanup ydocs and awareness
+    for (const docId of ydocs.keys()) {
+        if (docId.startsWith(`${workspaceId}:`)) {
+            ydocs.delete(docId);
+            awareness.delete(docId);
+            logger.info(`Cleared document from memory: ${docId}`);
+        }
+    }
+};
+
 module.exports = {
     setupCollaborationServer,
     getDocument,
     persistDocument,
     loadDocument,
-    generateUserColor
+    generateUserColor,
+    cleanupWorkspaceDocs
 };

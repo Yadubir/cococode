@@ -85,8 +85,49 @@ const authorize = (...roles) => {
     };
 };
 
+/**
+ * Workspace access control - ensures user is a member or owner
+ */
+const ensureWorkspaceMember = (req, res, next) => {
+    const db = require('../services/database');
+    const { asyncHandler } = require('./errorHandler');
+
+    return asyncHandler(async (req, res, next) => {
+        const workspaceId = req.params.workspaceId || req.body.workspaceId || req.query.workspaceId || req.params.id;
+
+        if (!workspaceId) {
+            logger.warn(`Missing workspaceId in membership check for user ${req.user.id}`);
+            return res.status(400).json({
+                success: false,
+                error: 'ValidationError',
+                message: 'Workspace ID is required',
+            });
+        }
+
+        try {
+            const isMember = await db.isWorkspaceMember(workspaceId, req.user.id);
+            
+            if (!isMember) {
+                logger.warn(`Access denied: User ${req.user.email} is not a member of workspace ${workspaceId}`);
+                return res.status(403).json({
+                    success: false,
+                    error: 'ForbiddenError',
+                    message: 'Access denied: You are not a member of this workspace or it has been deleted',
+                });
+            }
+
+            logger.info(`Access granted: User ${req.user.email} authorized for workspace ${workspaceId}`);
+            next();
+        } catch (error) {
+            logger.error(`Error in ensureWorkspaceMember:`, error);
+            next(error);
+        }
+    })(req, res, next);
+};
+
 module.exports = {
     authenticate,
     optionalAuth,
     authorize,
+    ensureWorkspaceMember,
 };
