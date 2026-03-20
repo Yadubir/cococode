@@ -68,7 +68,7 @@ function CallManager({ workspaceId, onSetJoinCall, onCallStateChange }) {
                 const peer = addPeer(payload.signal, callerSessionId, streamRef.current);
                 const peerObj = { peerId: callerSessionId, peer };
 
-                peersRef.current.push(peerObj);
+                peersRef.current = [...peersRef.current, peerObj];
                 setPeers([...peersRef.current]);
             }
         };
@@ -95,6 +95,21 @@ function CallManager({ workspaceId, onSetJoinCall, onCallStateChange }) {
             socket.on('webrtc:user-joined', handleUserJoined);
             socket.on('webrtc:signal', handleSignal);
             socket.on('webrtc:user-left', handleUserLeft);
+            
+            socket.on('webrtc:active-users', (usersInCall) => {
+                console.log("[WebRTC] Active users received from server", usersInCall);
+                usersInCall.forEach(callerId => {
+                    if (callerId === socket.id) return;
+                    if (!streamRef.current) return;
+                    if (peersRef.current.find(p => p.peerId === callerId)) return;
+                    
+                    const peer = createPeer(callerId, socket.id, streamRef.current);
+                    const peerObj = { peerId: callerId, peer };
+
+                    peersRef.current = [...peersRef.current, peerObj];
+                    setPeers([...peersRef.current]);
+                });
+            });
 
             socket.emit('webrtc:join-call', { workspaceId, userId: user.id });
         }
@@ -104,6 +119,7 @@ function CallManager({ workspaceId, onSetJoinCall, onCallStateChange }) {
             socket.off('webrtc:user-joined', handleUserJoined);
             socket.off('webrtc:signal', handleSignal);
             socket.off('webrtc:user-left', handleUserLeft);
+            socket.off('webrtc:active-users');
         };
     }, [inCall, workspaceId, user.id]);
 
@@ -164,12 +180,15 @@ function CallManager({ workspaceId, onSetJoinCall, onCallStateChange }) {
 
         peer.on('signal', (signal) => {
             console.log(`[WebRTC] Emitting signal ${signal.type || 'candidate'} to ${userToSignal}`);
-            socketRef.current.emit('webrtc:signal', {
-                userToSignal,
-                callerId,
-                signal,
-                workspaceId
-            });
+            // Don't send signal if peer is destroyed
+            if (!peer.destroyed) {
+                socketRef.current.emit('webrtc:signal', {
+                    userToSignal,
+                    callerId,
+                    signal,
+                    workspaceId
+                });
+            }
         });
 
         peer.on('error', (err) => {
@@ -190,12 +209,15 @@ function CallManager({ workspaceId, onSetJoinCall, onCallStateChange }) {
 
         peer.on('signal', (signal) => {
             console.log(`[WebRTC] Returning signal ${signal.type || 'candidate'} to ${callerId}`);
-            socketRef.current.emit('webrtc:signal', {
-                userToSignal: callerId,
-                callerId: socketRef.current.id,
-                signal,
-                workspaceId
-            });
+            // Don't send signal if peer is destroyed
+            if (!peer.destroyed) {
+                socketRef.current.emit('webrtc:signal', {
+                    userToSignal: callerId,
+                    callerId: socketRef.current.id,
+                    signal,
+                    workspaceId
+                });
+            }
         });
 
         peer.on('error', (err) => {
@@ -285,16 +307,32 @@ function CallManager({ workspaceId, onSetJoinCall, onCallStateChange }) {
     const VideoPeer = ({ peer }) => {
         const ref = useRef();
         useEffect(() => {
+            // Set stream immediately if available
             if (peer.streams && peer.streams[0] && ref.current) {
                 ref.current.srcObject = peer.streams[0];
             }
 
-            peer.on('stream', (stream) => {
+            const handleStream = (stream) => {
                 console.log("[WebRTC] Received remote stream!", stream);
                 if (ref.current) {
                     ref.current.srcObject = stream;
                 }
-            });
+            };
+            
+            const handleTrack = (track, stream) => {
+                console.log("[WebRTC] Received remote track!", track.kind);
+                if (ref.current) {
+                    ref.current.srcObject = stream;
+                }
+            };
+
+            peer.on('stream', handleStream);
+            peer.on('track', handleTrack);
+            
+            return () => {
+                peer.off('stream', handleStream);
+                peer.off('track', handleTrack);
+            }
         }, [peer]);
 
         return (
