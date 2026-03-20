@@ -1,15 +1,27 @@
 const { Pool } = require('pg');
 const logger = require('../utils/logger');
 
+// Build database URL if not directly provided but PG environment variables are set
+let dbUrl = process.env.DATABASE_URL;
+if (!dbUrl && process.env.PGHOST && process.env.PGUSER && process.env.PGPASSWORD && process.env.PGDATABASE) {
+    dbUrl = `postgresql://${process.env.PGUSER}:${process.env.PGPASSWORD}@${process.env.PGHOST}:${process.env.PGPORT || 5432}/${process.env.PGDATABASE}`;
+    logger.info('Built DATABASE_URL from PG environment variables');
+}
+
+// Ensure SSL is enabled for all cloud environments (not just Railway and Neon)
+// Most cloud DBs require SSL. If we don't have SSL enabled and it's not explicitly localhost, default to SSL
+const isLocal = dbUrl ? (dbUrl.includes('localhost') || dbUrl.includes('127.0.0.1')) : true;
+const useSsl = isLocal ? false : { rejectUnauthorized: false };
+
 const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
+    connectionString: dbUrl,
     max: 20,
     idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 10000,  // 10s — enough for cold Railway/Neon starts
-    ssl: process.env.DATABASE_URL?.includes('railway') || process.env.DATABASE_URL?.includes('neon')
-        ? { rejectUnauthorized: false }
-        : false,
+    connectionTimeoutMillis: 15000,  // 15s — enough for cold Railway/Neon/Render starts
+    ssl: useSsl,
 });
+
+logger.info(`Initializing database connection to: ${dbUrl ? dbUrl.split('@')[1] : 'unknown host'} (SSL: ${useSsl ? 'enabled' : 'disabled'})`);
 
 // Test connection
 pool.on('connect', () => {
