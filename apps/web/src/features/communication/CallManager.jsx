@@ -28,7 +28,7 @@ const VideoPeer = ({ peer }) => {
             console.log("[WebRTC] Received remote stream!", stream);
             setStream(stream);
         };
-        
+
         const handleTrack = (track, stream) => {
             console.log("[WebRTC] Received remote track!", track.kind);
             setStream(stream);
@@ -36,7 +36,7 @@ const VideoPeer = ({ peer }) => {
 
         peer.on('stream', handleStream);
         peer.on('track', handleTrack);
-        
+
         return () => {
             peer.off('stream', handleStream);
             peer.off('track', handleTrack);
@@ -144,20 +144,12 @@ function CallManager({ workspaceId, onSetJoinCall, onCallStateChange }) {
             socket.on('webrtc:user-joined', handleUserJoined);
             socket.on('webrtc:signal', handleSignal);
             socket.on('webrtc:user-left', handleUserLeft);
-            
-            socket.on('webrtc:active-users', (usersInCall) => {
-                console.log("[WebRTC] Active users received from server", usersInCall);
-                usersInCall.forEach(callerId => {
-                    if (callerId === socket.id) return;
-                    if (!streamRef.current) return;
-                    if (peersRef.current.find(p => p.peerId === callerId)) return;
-                    
-                    const peer = createPeer(callerId, socket.id, streamRef.current);
-                    const peerObj = { peerId: callerId, peer };
 
-                    peersRef.current = [...peersRef.current, peerObj];
-                    setPeers([...peersRef.current]);
-                });
+            // Only log active users — do NOT create initiator peers here.
+            // Existing users will initiate connections via 'webrtc:user-joined',
+            // and this new user will respond via handleSignal/addPeer (non-initiator).
+            socket.on('webrtc:active-users', (usersInCall) => {
+                console.log("[WebRTC] Active users in call:", usersInCall.length, usersInCall);
             });
 
             socket.emit('webrtc:join-call', { workspaceId, userId: user.id });
