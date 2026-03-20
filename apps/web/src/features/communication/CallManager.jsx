@@ -4,6 +4,51 @@ import { Mic, MicOff, Video, VideoOff, PhoneOff, User as UserIcon, GripHorizonta
 import { useAuthStore } from '../../stores/authStore';
 import { getSocket } from '../../services/socket';
 
+// Sub-component to render individual peer video (MOVED OUTSIDE to prevent unmounting on drag/toggle!)
+const VideoPeer = ({ peer }) => {
+    const ref = useRef();
+    useEffect(() => {
+        if (!peer) return;
+
+        // Use _remoteStreams to strictly grab external streams, avoiding local stream mix-up
+        const existingStream = peer._remoteStreams?.[0] || (peer.streams && peer.streams[0]);
+        if (existingStream && ref.current) {
+            ref.current.srcObject = existingStream;
+        }
+
+        const handleStream = (stream) => {
+            console.log("[WebRTC] Received remote stream!", stream);
+            if (ref.current) {
+                ref.current.srcObject = stream;
+            }
+        };
+        
+        const handleTrack = (track, stream) => {
+            console.log("[WebRTC] Received remote track!", track.kind);
+            if (ref.current) {
+                ref.current.srcObject = stream;
+            }
+        };
+
+        peer.on('stream', handleStream);
+        peer.on('track', handleTrack);
+        
+        return () => {
+            peer.off('stream', handleStream);
+            peer.off('track', handleTrack);
+        }
+    }, [peer]);
+
+    return (
+        <video
+            playsInline
+            autoPlay
+            ref={ref}
+            className="w-full h-full bg-black rounded-lg object-cover border-2 border-editor-border shadow-md"
+        />
+    );
+};
+
 function CallManager({ workspaceId, onSetJoinCall, onCallStateChange }) {
     const { user } = useAuthStore();
     const [inCall, setInCall] = useState(false);
@@ -301,48 +346,6 @@ function CallManager({ workspaceId, onSetJoinCall, onCallStateChange }) {
 
         window.addEventListener('mousemove', handleMouseMove);
         window.addEventListener('mouseup', handleMouseUp);
-    };
-
-    // Sub-component to render individual peer video
-    const VideoPeer = ({ peer }) => {
-        const ref = useRef();
-        useEffect(() => {
-            // Set stream immediately if available
-            if (peer.streams && peer.streams[0] && ref.current) {
-                ref.current.srcObject = peer.streams[0];
-            }
-
-            const handleStream = (stream) => {
-                console.log("[WebRTC] Received remote stream!", stream);
-                if (ref.current) {
-                    ref.current.srcObject = stream;
-                }
-            };
-            
-            const handleTrack = (track, stream) => {
-                console.log("[WebRTC] Received remote track!", track.kind);
-                if (ref.current) {
-                    ref.current.srcObject = stream;
-                }
-            };
-
-            peer.on('stream', handleStream);
-            peer.on('track', handleTrack);
-            
-            return () => {
-                peer.off('stream', handleStream);
-                peer.off('track', handleTrack);
-            }
-        }, [peer]);
-
-        return (
-            <video
-                playsInline
-                autoPlay
-                ref={ref}
-                className="w-full h-full bg-black rounded-lg object-cover border-2 border-editor-border shadow-md"
-            />
-        );
     };
 
     if (!inCall) return null;
