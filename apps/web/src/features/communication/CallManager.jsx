@@ -10,24 +10,28 @@ const VideoPeer = ({ peer }) => {
     useEffect(() => {
         if (!peer) return;
 
+        const setStream = (stream) => {
+            if (ref.current && stream) {
+                ref.current.srcObject = stream;
+                // Sometimes browsers require an explicit play call when srcObject is set asynchronously
+                ref.current.play().catch(e => console.warn("[WebRTC] Video auto-play blocked or error:", e));
+            }
+        };
+
         // Use _remoteStreams to strictly grab external streams, avoiding local stream mix-up
         const existingStream = peer._remoteStreams?.[0] || (peer.streams && peer.streams[0]);
-        if (existingStream && ref.current) {
-            ref.current.srcObject = existingStream;
+        if (existingStream) {
+            setStream(existingStream);
         }
 
         const handleStream = (stream) => {
             console.log("[WebRTC] Received remote stream!", stream);
-            if (ref.current) {
-                ref.current.srcObject = stream;
-            }
+            setStream(stream);
         };
         
         const handleTrack = (track, stream) => {
             console.log("[WebRTC] Received remote track!", track.kind);
-            if (ref.current) {
-                ref.current.srcObject = stream;
-            }
+            setStream(stream);
         };
 
         peer.on('stream', handleStream);
