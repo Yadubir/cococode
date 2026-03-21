@@ -88,6 +88,20 @@ router.post('/:workspaceId', authenticate, ensureWorkspaceMember, asyncHandler(a
         });
     }
 
+    // Check for duplicate name at the same path level
+    const existingResult = await db.query(
+        'SELECT id FROM files WHERE workspace_id = $1 AND path = $2 AND name = $3',
+        [workspaceId, path, name]
+    );
+
+    if (existingResult.rows.length > 0) {
+        return res.status(409).json({
+            success: false,
+            error: 'ConflictError',
+            message: `A file or folder with the name "${name}" already exists at this location`,
+        });
+    }
+
     const file = {
         id: uuidv4(),
         workspaceId,
@@ -126,23 +140,73 @@ router.post('/:workspaceId', authenticate, ensureWorkspaceMember, asyncHandler(a
  */
 router.put('/:workspaceId/:fileId', authenticate, ensureWorkspaceMember, asyncHandler(async (req, res) => {
     const { workspaceId, fileId } = req.params;
-    const { content } = req.body;
+    const { content, name, path } = req.body;
 
-    if (content === undefined) {
+    const fields = [];
+    const params = [];
+    let paramIndex = 1;
+
+    if (content !== undefined) {
+        fields.push(`content = $${paramIndex++}`);
+        params.push(content);
+        fields.push(`size = $${paramIndex++}`);
+        params.push(Buffer.byteLength(content, 'utf8'));
+    }
+
+    if (name !== undefined) {
+        fields.push(`name = $${paramIndex++}`);
+        params.push(name);
+    }
+
+    if (path !== undefined) {
+        fields.push(`path = $${paramIndex++}`);
+        params.push(path);
+    }
+
+    // Check for duplicate name if renaming or moving
+    if (name !== undefined || path !== undefined) {
+        // We need to fetch current path/name if only one is provided
+        let targetName = name;
+        let targetPath = path;
+
+        if (name === undefined || path === undefined) {
+            const currentRes = await db.query('SELECT name, path FROM files WHERE id = $1', [fileId]);
+            if (currentRes.rows.length > 0) {
+                if (targetName === undefined) targetName = currentRes.rows[0].name;
+                if (targetPath === undefined) targetPath = currentRes.rows[0].path;
+            }
+        }
+
+        const conflictRes = await db.query(
+            'SELECT id FROM files WHERE workspace_id = $1 AND path = $2 AND name = $3 AND id != $4',
+            [workspaceId, targetPath, targetName, fileId]
+        );
+
+        if (conflictRes.rows.length > 0) {
+            return res.status(409).json({
+                success: false,
+                error: 'ConflictError',
+                message: `A file or folder with the name "${targetName}" already exists at this location`,
+            });
+        }
+    }
+
+    if (fields.length === 0) {
         return res.status(400).json({
             success: false,
             error: 'ValidationError',
-            message: 'Content is required',
+            message: 'Nothing to update',
         });
     }
 
-    const size = Buffer.byteLength(content, 'utf8');
+    fields.push(`updated_at = NOW()`);
+    params.push(fileId, workspaceId);
 
     const result = await db.query(
-        `UPDATE files SET content = $1, size = $2, updated_at = NOW() 
-     WHERE id = $3 AND workspace_id = $4 
+        `UPDATE files SET ${fields.join(', ')} 
+     WHERE id = $${paramIndex++} AND workspace_id = $${paramIndex++} 
      RETURNING id, path, name, size, updated_at`,
-        [content, size, fileId, workspaceId]
+        params
     );
 
     if (result.rows.length === 0) {

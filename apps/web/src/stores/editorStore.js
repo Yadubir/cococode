@@ -151,6 +151,37 @@ export const useEditorStore = create((set, get) => ({
     },
 
     /**
+     * Rename a file or folder
+     */
+    renameFile: async (fileId, newName, newPath) => {
+        const { workspaceId, fetchFiles } = get();
+
+        try {
+            await api.put(`/files/${workspaceId}/${fileId}`, {
+                name: newName,
+                path: newPath,
+            });
+
+            await fetchFiles(workspaceId);
+
+            // Update open files if necessary
+            set(state => ({
+                openFiles: state.openFiles.map(f =>
+                    f.id === fileId ? { ...f, name: newName, path: newPath } : f
+                ),
+                activeFile: state.activeFile?.id === fileId
+                    ? { ...state.activeFile, name: newName, path: newPath }
+                    : state.activeFile,
+            }));
+
+            return true;
+        } catch (error) {
+            console.error('Failed to rename file:', error);
+            throw error;
+        }
+    },
+
+    /**
      * Save file content
      */
     saveFile: async (fileId) => {

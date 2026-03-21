@@ -10,7 +10,12 @@ if (!dbUrl && process.env.PGHOST && process.env.PGUSER && process.env.PGPASSWORD
 
 // Ensure SSL is enabled for all cloud environments (not just Railway and Neon)
 // Most cloud DBs require SSL. If we don't have SSL enabled and it's not explicitly localhost, default to SSL
-const isLocal = dbUrl ? (dbUrl.includes('localhost') || dbUrl.includes('127.0.0.1')) : true;
+const isLocal = dbUrl ? (
+    dbUrl.includes('localhost') || 
+    dbUrl.includes('127.0.0.1') || 
+    dbUrl.includes('@postgres') || 
+    dbUrl.includes('0.0.0.0')
+) : true;
 const useSsl = isLocal ? false : { rejectUnauthorized: false };
 
 const pool = new Pool({

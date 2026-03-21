@@ -19,17 +19,21 @@ import { useEditorStore } from '../../stores/editorStore';
 import ShareModal from '../workspace/ShareModal';
 
 function FileExplorer({ workspaceId, onFileOpen }) {
-    const { files, isLoadingFiles, fetchFiles, createFile, deleteFile } = useEditorStore();
-    const [expandedFolders, setExpandedFolders] = useState(new Set(['/']));
+    const { files, isLoadingFiles, fetchFiles, createFile, deleteFile, renameFile } = useEditorStore();
+    const [expandedFolders, setExpandedFolders] = useState(new Set(['root']));
     const [showNewFileModal, setShowNewFileModal] = useState(false);
     const [showShareModal, setShowShareModal] = useState(false);
     const [newFileName, setNewFileName] = useState('');
     const [newFileType, setNewFileType] = useState('file');
     const [contextMenu, setContextMenu] = useState(null);
+    const [selectedDirectory, setSelectedDirectory] = useState(null);
+    const [editingId, setEditingId] = useState(null);
+    const [editingName, setEditingName] = useState('');
+    const [createError, setCreateError] = useState(null);
 
     // Build file tree structure
     const fileTree = useMemo(() => {
-        const tree = { name: 'root', children: [], path: '/' };
+        const tree = { id: 'root', name: 'root', children: [], path: '/' };
 
         files.forEach(file => {
             const parts = file.path.split('/').filter(Boolean);
@@ -37,19 +41,27 @@ function FileExplorer({ workspaceId, onFileOpen }) {
 
             parts.forEach((part, index) => {
                 const isLast = index === parts.length - 1;
-                const existingChild = current.children?.find(c => c.name === part);
+                const currentPath = '/' + parts.slice(0, index + 1).join('/');
+                const existingChild = current.children?.find(c => c.name === part && c.type === 'directory');
 
                 if (existingChild) {
                     current = existingChild;
                 } else if (!isLast) {
-                    const newFolder = { name: part, children: [], path: parts.slice(0, index + 1).join('/'), type: 'directory' };
+                    // Virtual folder (not explicitly a file/directory record in DB but part of a path)
+                    const newFolder = {
+                        id: `folder:${currentPath}`, // Guaranteed unique ID based on path
+                        name: part,
+                        children: [],
+                        path: currentPath,
+                        type: 'directory'
+                    };
                     current.children = current.children || [];
                     current.children.push(newFolder);
                     current = newFolder;
                 }
             });
 
-            // Add the file
+            // Add the file (or explicitly created directory)
             current.children = current.children || [];
             if (!current.children.find(c => c.id === file.id)) {
                 current.children.push({ ...file });
@@ -60,13 +72,13 @@ function FileExplorer({ workspaceId, onFileOpen }) {
     }, [files]);
 
     // Toggle folder expansion
-    const toggleFolder = (path) => {
+    const toggleFolder = (id) => {
         setExpandedFolders(prev => {
             const next = new Set(prev);
-            if (next.has(path)) {
-                next.delete(path);
+            if (next.has(id)) {
+                next.delete(id);
             } else {
-                next.add(path);
+                next.add(id);
             }
             return next;
         });
@@ -75,7 +87,7 @@ function FileExplorer({ workspaceId, onFileOpen }) {
     // Handle file click
     const handleFileClick = (item) => {
         if (item.type === 'directory') {
-            toggleFolder(item.path);
+            toggleFolder(item.id);
         } else {
             onFileOpen(item);
         }
@@ -97,24 +109,72 @@ function FileExplorer({ workspaceId, onFileOpen }) {
     // Handle delete
     const handleDelete = async () => {
         if (contextMenu?.item) {
-            if (confirm(`Delete "${contextMenu.item.name}"?`)) {
+            // Virtual folders don't have UUIDs, they start with folder:
+            if (String(contextMenu.item.id).startsWith('folder:')) {
+                alert('Cannot delete a virtual folder. Delete its contents instead.');
+            } else if (confirm(`Delete "${contextMenu.item.name}"?`)) {
                 await deleteFile(contextMenu.item.id);
             }
             closeContextMenu();
         }
     };
 
+    // Handle Rename
+    const handleStartRename = () => {
+        if (contextMenu?.item) {
+            if (String(contextMenu.item.id).startsWith('folder:')) {
+                alert('Cannot rename virtual folders.');
+            } else {
+                setEditingId(contextMenu.item.id);
+                setEditingName(contextMenu.item.name);
+            }
+            closeContextMenu();
+        }
+    };
+
+    const handleRenameSubmit = async (item) => {
+        if (!editingName.trim() || editingName === item.name) {
+            setEditingId(null);
+            return;
+        }
+
+        try {
+            // Calculate new path if needed (if path is used for hierarchy)
+            const parentPath = item.path.substring(0, item.path.lastIndexOf('/') + 1);
+            const newPath = parentPath + editingName;
+
+            await renameFile(item.id, editingName, newPath);
+            setEditingId(null);
+        } catch (error) {
+            console.error('Failed to rename:', error);
+        }
+    };
+
+    const handleRenameCancel = () => {
+        setEditingId(null);
+    };
+
     // Handle create file
     const handleCreateFile = async (e) => {
         e.preventDefault();
         if (!newFileName.trim()) return;
+        setCreateError(null);
 
         try {
-            await createFile(`/${newFileName}`, newFileName, newFileType);
+            const parentPath = selectedDirectory ? selectedDirectory.path : '/';
+            const fullPath = parentPath.endsWith('/')
+                ? `${parentPath}${newFileName}`
+                : `${parentPath}/${newFileName}`;
+
+            await createFile(fullPath, newFileName, newFileType);
             setShowNewFileModal(false);
             setNewFileName('');
+            setSelectedDirectory(null);
+            setCreateError(null);
         } catch (error) {
             console.error('Failed to create file:', error);
+            const message = error.response?.data?.message || 'Failed to create file. Please try again.';
+            setCreateError(message);
         }
     };
 
@@ -142,15 +202,16 @@ function FileExplorer({ workspaceId, onFileOpen }) {
     // Render tree item
     const renderTreeItem = (item, depth = 0) => {
         const isFolder = item.type === 'directory';
-        const isExpanded = expandedFolders.has(item.path);
+        const isExpanded = expandedFolders.has(item.id);
+        const isEditing = editingId === item.id;
         const FileIcon = isFolder ? (isExpanded ? FolderOpen : Folder) : getFileIcon(item.name);
 
         return (
-            <div key={item.id || item.path}>
+            <div key={item.id}>
                 <div
-                    className="file-tree-item group"
+                    className={`file-tree-item group ${isEditing ? 'bg-editor-active' : ''}`}
                     style={{ paddingLeft: `${depth * 12 + 8}px` }}
-                    onClick={() => handleFileClick(item)}
+                    onClick={() => !isEditing && handleFileClick(item)}
                     onContextMenu={(e) => handleContextMenu(e, item)}
                 >
                     {isFolder && (
@@ -165,17 +226,38 @@ function FileExplorer({ workspaceId, onFileOpen }) {
                     {!isFolder && <span className="w-4" />}
 
                     <FileIcon className={`w-4 h-4 flex-shrink-0 ${isFolder ? 'text-yellow-500' : 'text-editor-text-dim'}`} />
-                    <span className="truncate text-sm">{item.name}</span>
 
-                    <button
-                        className="ml-auto p-1 opacity-0 group-hover:opacity-100 hover:bg-editor-active rounded"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            handleContextMenu(e, item);
-                        }}
-                    >
-                        <Trash2 className="w-3 h-3 text-red-400" />
-                    </button>
+                    {isEditing ? (
+                        <input
+                            autoFocus
+                            className="bg-editor-bg text-white text-sm px-1 py-0.5 w-full rounded outline-none border border-editor-accent"
+                            value={editingName}
+                            onChange={(e) => {
+                                setEditingName(e.target.value);
+                                setCreateError(null);
+                            }}
+                            onBlur={() => handleRenameSubmit(item)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleRenameSubmit(item);
+                                if (e.key === 'Escape') handleRenameCancel();
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                        />
+                    ) : (
+                        <span className="truncate text-sm">{item.name}</span>
+                    )}
+
+                    {!isEditing && (
+                        <button
+                            className="ml-auto p-1 opacity-0 group-hover:opacity-100 hover:bg-editor-active rounded"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleContextMenu(e, item);
+                            }}
+                        >
+                            <Trash2 className="w-3 h-3 text-red-400" />
+                        </button>
+                    )}
                 </div>
 
                 {isFolder && isExpanded && item.children && (
@@ -210,7 +292,11 @@ function FileExplorer({ workspaceId, onFileOpen }) {
                         <Share2 className="w-4 h-4" />
                     </button>
                     <button
-                        onClick={() => setShowNewFileModal(true)}
+                        onClick={() => {
+                            setSelectedDirectory(null);
+                            setCreateError(null);
+                            setShowNewFileModal(true);
+                        }}
                         className="p-1 hover:bg-editor-active rounded"
                         title="New File"
                     >
@@ -237,7 +323,10 @@ function FileExplorer({ workspaceId, onFileOpen }) {
                         <Folder className="w-12 h-12 mx-auto mb-3 opacity-50" />
                         <p className="text-sm">No files yet</p>
                         <button
-                            onClick={() => setShowNewFileModal(true)}
+                            onClick={() => {
+                                setCreateError(null);
+                                setShowNewFileModal(true);
+                            }}
                             className="mt-3 text-editor-accent text-sm hover:underline"
                         >
                             Create first file
@@ -261,6 +350,28 @@ function FileExplorer({ workspaceId, onFileOpen }) {
                     style={{ left: contextMenu.x, top: contextMenu.y }}
                     onClick={(e) => e.stopPropagation()}
                 >
+                    {contextMenu.item.type === 'directory' && (
+                        <button
+                            onClick={() => {
+                                setSelectedDirectory(contextMenu.item);
+                                setNewFileType('file');
+                                setCreateError(null);
+                                setShowNewFileModal(true);
+                                closeContextMenu();
+                            }}
+                            className="flex items-center gap-2 px-4 py-2 hover:bg-editor-active w-full text-left"
+                        >
+                            <Plus className="w-4 h-4" />
+                            New File
+                        </button>
+                    )}
+                    <button
+                        onClick={handleStartRename}
+                        className="flex items-center gap-2 px-4 py-2 hover:bg-editor-active w-full text-left"
+                    >
+                        <RefreshCw className="w-4 h-4" />
+                        Rename
+                    </button>
                     <button
                         onClick={handleDelete}
                         className="flex items-center gap-2 px-4 py-2 hover:bg-editor-active w-full text-left text-red-400"
@@ -282,6 +393,13 @@ function FileExplorer({ workspaceId, onFileOpen }) {
                         onClick={(e) => e.stopPropagation()}
                     >
                         <h3 className="text-xl font-semibold text-white mb-4">Create New File</h3>
+                        
+                        {createError && (
+                            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/50 rounded-lg text-red-400 text-sm">
+                                {createError}
+                            </div>
+                        )}
+
                         <form onSubmit={handleCreateFile}>
                             <div className="mb-4">
                                 <label className="block text-sm font-medium text-editor-text mb-2">
@@ -320,7 +438,10 @@ function FileExplorer({ workspaceId, onFileOpen }) {
                                 <input
                                     type="text"
                                     value={newFileName}
-                                    onChange={(e) => setNewFileName(e.target.value)}
+                                    onChange={(e) => {
+                                        setNewFileName(e.target.value);
+                                        setCreateError(null);
+                                    }}
                                     placeholder={newFileType === 'file' ? 'example.js' : 'folder-name'}
                                     className="input"
                                     autoFocus

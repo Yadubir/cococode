@@ -4,7 +4,7 @@ const logger = require('../utils/logger');
 /**
  * JWT Authentication middleware
  */
-const authenticate = (req, res, next) => {
+const authenticate = async (req, res, next) => {
     try {
         const authHeader = req.headers.authorization;
 
@@ -18,6 +18,17 @@ const authenticate = (req, res, next) => {
 
         const token = authHeader.split(' ')[1];
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+        // Verify user exists in database to prevent errors when switching environments
+        const db = require('../services/database');
+        const user = await db.getUserById(decoded.id);
+        if (!user) {
+            return res.status(401).json({
+                success: false,
+                error: 'Unauthorized',
+                message: 'User no longer exists in current database. Please log in again.',
+            });
+        }
 
         req.user = decoded;
         next();
@@ -43,14 +54,19 @@ const authenticate = (req, res, next) => {
 /**
  * Optional authentication - attaches user if token present
  */
-const optionalAuth = (req, res, next) => {
+const optionalAuth = async (req, res, next) => {
     try {
         const authHeader = req.headers.authorization;
 
         if (authHeader && authHeader.startsWith('Bearer ')) {
             const token = authHeader.split(' ')[1];
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
-            req.user = decoded;
+            
+            const db = require('../services/database');
+            const user = await db.getUserById(decoded.id);
+            if (user) {
+                req.user = decoded;
+            }
         }
 
         next();

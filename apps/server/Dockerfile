@@ -8,9 +8,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy only the server's package.json and install with plain npm
-# (no lockfile needed — the Docker image layer itself provides reproducibility)
-COPY apps/server/package.json ./package.json
-RUN npm install --omit=dev --ignore-scripts=false
+COPY package.json ./
+RUN npm install --ignore-scripts=false
 
 # ─── Stage 2: Production image ───────────────────────────────────────────────
 FROM node:20-slim AS runner
@@ -34,8 +33,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=deps /app/node_modules ./node_modules
 
 # Copy only the server source
-COPY apps/server/src ./src
-COPY apps/server/package.json ./package.json
+COPY src ./src
+COPY package.json ./package.json
 
 # Create a non-root user for security
 RUN groupadd -r cococode && useradd -r -g cococode cococode \
