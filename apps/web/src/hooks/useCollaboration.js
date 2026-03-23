@@ -11,6 +11,24 @@ export function useCollaboration(documentId, editorInstance) {
     const connectionRef = useRef(null);
     const decorationsRef = useRef([]);
     const isApplyingRemoteRef = useRef(false);
+    const styleElementRef = useRef(null);
+
+    // Initialize the style element for dynamic cursor colors
+    useEffect(() => {
+        const styleId = 'dynamic-cursor-colors';
+        let styleEl = document.getElementById(styleId);
+        if (!styleEl) {
+            styleEl = document.createElement('style');
+            styleEl.id = styleId;
+            document.head.appendChild(styleEl);
+        }
+        styleElementRef.current = styleEl;
+
+        return () => {
+            // Only clean up on full unmount if we really wanted to, 
+            // but multiple editors might share it. It's safer to just clear it on disconnect.
+        };
+    }, []);
 
     // Setup collaboration when document changes
     useEffect(() => {
@@ -122,6 +140,9 @@ export function useCollaboration(documentId, editorInstance) {
                 removeAwareness(documentId);
                 connection.cleanup();
                 setIsConnected(false);
+                if (styleElementRef.current) {
+                    styleElementRef.current.innerHTML = ''; // Clear remote cursors from DOM
+                }
             };
         }
     }, [documentId, editorInstance]);
@@ -134,6 +155,7 @@ export function useCollaboration(documentId, editorInstance) {
         if (!socket) return;
 
         const decorations = [];
+        let styleContent = ''; // Accumulate dynamic CSS
 
         awareness.forEach((state, clientId) => {
             // Skip our own cursor
@@ -144,6 +166,46 @@ export function useCollaboration(documentId, editorInstance) {
 
             const color = user.color || '#888888';
 
+            // Generate unique CSS classes for this user's cursor
+            const cursorBeforeClass = `remote-cursor-before-${clientId}`;
+            const selectionClass = `remote-selection-${clientId}`;
+
+            // Append to our dynamic stylesheet string
+            styleContent += `
+                .${cursorBeforeClass} {
+                    position: relative;
+                }
+                /* The vertical cursor line */
+                .${cursorBeforeClass}::before {
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    left: -1px;
+                    width: 2px;
+                    height: 20px; /* Hardcoded to ensure visibility on empty lines */
+                    background-color: ${color};
+                    z-index: 40;
+                }
+                /* The floating user name label */
+                .${cursorBeforeClass}::after {
+                    content: '${user.name || 'Anonymous'}';
+                    position: absolute;
+                    top: -20px;
+                    left: -1px;
+                    background-color: ${color};
+                    color: white;
+                    padding: 2px 6px;
+                    font-size: 10px;
+                    border-radius: 2px;
+                    white-space: nowrap;
+                    z-index: 50;
+                    pointer-events: none;
+                }
+                .${selectionClass} {
+                    background-color: ${color}33 !important; /* ~20% opacity */
+                }
+            `;
+
             // Remote cursor decoration
             if (cursor) {
                 decorations.push({
@@ -151,14 +213,11 @@ export function useCollaboration(documentId, editorInstance) {
                         startLineNumber: cursor.lineNumber,
                         startColumn: cursor.column,
                         endLineNumber: cursor.lineNumber,
-                        endColumn: cursor.column + 1,
+                        endColumn: Math.max(cursor.column + 1, 1),
                     },
                     options: {
-                        className: 'remote-cursor',
-                        beforeContentClassName: 'remote-cursor-before',
-                        hoverMessage: { value: user.name },
+                        beforeContentClassName: cursorBeforeClass,
                         stickiness: 1,
-                        afterContentClassName: `remote-cursor-label`,
                     },
                 });
             }
@@ -176,12 +235,17 @@ export function useCollaboration(documentId, editorInstance) {
                         endColumn: selection.endColumn,
                     },
                     options: {
-                        className: 'remote-selection',
+                        className: selectionClass,
                         stickiness: 1,
                     },
                 });
             }
         });
+
+        // Apply generated CSS to the style block
+        if (styleElementRef.current) {
+            styleElementRef.current.innerHTML = styleContent;
+        }
 
         // Apply decorations
         decorationsRef.current = editorInstance.deltaDecorations(
