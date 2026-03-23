@@ -1,104 +1,73 @@
 # CocoCode - Collaborative AI-Powered Code Editor
 
-CocoCode is a modern, real-time collaborative development environment designed for seamless pair programming and efficient software development. It combines the power of VS Code-like editing with real-time sync, integrated terminal access, and advanced AI assistance.
+A comprehensive code editor platform with real-time collaboration, AI-powered assistance, and integrated DevOps tools.
 
-## 🚀 Key Features
+## Tech Stack
 
-- **Real-Time Collaboration**: Multi-user editing with shared cursors and selection highlighting powered by **Y.js** (CRDT) and **Socket.io**.
-- **AI-Powered Code Assistant**: Integrated with **Gemini 2.0** for intelligent chat, code explanation, suggestions, and ghost-text autocomplete.
-- **Integrated Terminal**: Full-featured PTY terminal access using **node-pty** and **XTerm.js**, synchronized across all workspace collaborators.
-- **Git Integration**: Built-in Git GUI for managing version control, including staging, committing, pushing, and pulling from remote repositories.
-- **Live Communication**: Peer-to-peer audio/video calls via **WebRTC** and persistent workspace chat.
-- **Workspace Management**: Secure, JWT-authenticated projects with invite-based member management.
+- **Frontend**: React 18 + JavaScript
+- **Backend**: Node.js + Express
+- **Real-time**: Socket.io + Y.js (CRDT)
+- **Database**: PostgreSQL + Redis
+- **AI**: Gemini 2.0
+- **Infrastructure**: Docker + Kubernetes
 
-## 🛠 Tech Stack
-
-### Frontend
-- **Framework**: React 18 + Vite
-- **Editor**: Monaco Editor (VS Code core)
-- **Terminal**: XTerm.js
-- **State Management**: Zustand
-- **Real-time**: Socket.io-client + Y.js
-- **Styling**: TailwindCSS
-
-### Backend
-- **Server**: Node.js + Express
-- **Real-time**: Socket.io
-- **PTY**: node-pty
-- **Database**: PostgreSQL (Prisma-ready)
-- **Caching**: Redis
-- **AI**: Google Generative AI (Gemini 2.0)
-- **Git**: Simple-Git
-
-## 📂 Project Structure
-
-This project is a monorepo managed with **PNPM** and **Turbo**.
-
-```text
-cococode/
-├── apps/
-│   ├── web/                # React + Vite Frontend
-│   │   ├── src/
-│   │   │   ├── components/  # Shared UI components (Layout, Sidebar, etc.)
-│   │   │   ├── features/    # Feature-modules (Editor, Terminal, AI, Git, Comms)
-│   │   │   ├── hooks/       # Custom React hooks
-│   │   │   ├── services/    # API (Axios) and WebSocket clients
-│   │   │   └── stores/      # Zustand state management
-│   └── server/             # Node.js + Express Backend
-│       ├── src/
-│       │   ├── middleware/  # Auth, logic, and error handling
-│       │   ├── routes/      # Express API routes (AI, Files, Git, Terminal)
-│       │   ├── services/    # Business logic (Database, Git, PTY, etc.)
-│       │   ├── utils/       # Logging and shared helpers
-│       │   ├── websocket.js # Real-time communication logic
-│       │   └── collaboration.js # Y.js CRDT synchronization
-├── docker-compose.yml       # Production orchestration
-└── turbo.json              # Monorepo build configuration
-```
-
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
-- Node.js >= 18
-- PNPM >= 8
-- Docker & Docker Compose (for infrastructure)
+
+- Node.js >= 18.0.0
+- pnpm >= 8.0.0
+- Docker & Docker Compose
 
 ### Installation
 
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/your-username/cococode.git
-   cd cococode
-   ```
-
-2. **Install dependencies**:
-   ```bash
-   pnpm install
-   ```
-
-3. **Environment Setup**:
-   Create a `.env` file in `apps/server` based on `.env.example`.
-   ```bash
-   cp .env.example apps/server/.env
-   ```
-
-4. **Start Development Infrastructure**:
-   ```bash
-   docker compose up -d postgres redis
-   ```
-
-5. **Run Development Servers**:
-   ```bash
-   pnpm dev
-   ```
-   The frontend will be available at `http://localhost:5173`.
-
-## 🐳 Docker Deployment
-
-For a full production-like environment:
 ```bash
-docker compose up
+# Install dependencies
+pnpm install
+
+# Start development servers
+pnpm dev
+
+# Run with Docker
+docker-compose up -d
 ```
 
-## 📄 License
+## Current Phase: Real-Time Communication & Collaboration
+*(Recently Updated)*
+
+The project is currently in the advanced collaboration phase, focusing on real-time communication:
+- **Real-Time Socket Messaging**: Integrated chat functionality using WebSockets.
+- **Persistent Chat History**: Chat messages are now persisted and loaded in the sidebar.
+- **Peer-to-Peer Calls**: Added WebRTC-based audio/video calling capabilities.
+- **Signaling Server**: Dedicated signaling for WebRTC connection negotiation.
+- **Sidebar Integration**: Unified communication tools in the workspace UI.
+- **Terminal Sync**: Synchronized terminal document state across collaborators.
+
+## Project Structure
+
+```
+cococode/
+├── apps/
+│   ├── web/          # React frontend
+│   └── server/       # Node.js backend
+├── packages/
+│   ├── shared/       # Shared utilities
+│   ├── editor-core/  # Monaco editor wrapper
+│   ├── collaboration/# CRDT/real-time logic
+│   └── ai-agents/    # AI agent implementations
+└── infrastructure/   # Docker, K8s configs
+```
+
+## Scripts
+
+| Command | Description |
+|---------|-------------|
+| `pnpm dev` | Start development servers |
+| `pnpm build` | Build all packages |
+| `pnpm lint` | Run ESLint |
+| `pnpm test` | Run all tests |
+| `pnpm format` | Format code with Prettier |
+
+## License
+
 MIT
