@@ -28,7 +28,7 @@ function Dashboard() {
     const [deleteModal, setDeleteModal] = useState({ show: false, workspaceId: null, workspaceName: '' });
     const [newWorkspaceName, setNewWorkspaceName] = useState('');
 
-    const githubLinked = new URLSearchParams(window.location.search).get('github_linked');
+    const isGithubLinked = new URLSearchParams(window.location.search).get('github_linked') || !!user?.settings?.githubToken;
 
     const handleLinkGithub = () => {
         const token = useAuthStore.getState().token;
@@ -124,7 +124,7 @@ function Dashboard() {
                             className="btn btn-secondary flex items-center gap-2"
                         >
                             <Github className="w-4 h-4" />
-                            {githubLinked ? 'GitHub Linked \u2713' : 'Link GitHub'}
+                            {isGithubLinked ? 'GitHub Linked \u2713' : 'Link GitHub'}
                         </button>
                     </div>
                 </div>
