@@ -11,7 +11,7 @@ const router = express.Router();
 // Store active terminal sessions
 const terminalSessions = new Map();
 
-// Use bash explicitly — available everywhere including Docker Alpine (with bash installed)
+// Use bash explicitly : available everywhere including Docker Alpine (with bash installed)
 // Fall back to sh if bash is not present
 const SHELL = (() => {
     const candidates = ['/bin/bash', '/usr/bin/bash', '/bin/sh'];
@@ -22,7 +22,9 @@ const SHELL = (() => {
 })();
 
 /**
- * Create a new terminal session with PTY
+ * @route   POST /api/terminal/create
+ * @desc    Create a new terminal session with PTY
+ * @access  Private
  */
 router.post('/create', authenticate, ensureWorkspaceMember, (req, res) => {
     const { workspaceId } = req.body;
@@ -119,7 +121,9 @@ router.post('/create', authenticate, ensureWorkspaceMember, (req, res) => {
 });
 
 /**
- * Execute a command in the terminal session
+ * @route   POST /api/terminal/:sessionId/exec
+ * @desc    Execute a command in the terminal session
+ * @access  Private
  */
 router.post('/:sessionId/exec', authenticate, (req, res) => {
     const { sessionId } = req.params;
@@ -161,7 +165,9 @@ router.post('/:sessionId/exec', authenticate, (req, res) => {
 });
 
 /**
- * Get list of active terminal sessions
+ * @route   GET /api/terminal/sessions
+ * @desc    Get list of active terminal sessions
+ * @access  Private
  */
 router.get('/sessions', authenticate, (req, res) => {
     const userSessions = [];
@@ -182,7 +188,9 @@ router.get('/sessions', authenticate, (req, res) => {
 });
 
 /**
- * Close a terminal session
+ * @route   DELETE /api/terminal/:sessionId
+ * @desc    Close a terminal session
+ * @access  Private
  */
 router.delete('/:sessionId', authenticate, (req, res) => {
     const { sessionId } = req.params;

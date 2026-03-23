@@ -6,7 +6,7 @@ const callUsersMap = new Map(); // socket.id -> workspaceId
 const workspaceCallsMap = new Map(); // workspaceId -> Set of socket.ids
 
 /**
- * WebSocket server setup for real-time collaboration
+ * WebSocket server setup for real time collab
  */
 const setupWebSocket = (io, setupTerminalSocket) => {
     // Authentication middleware for WebSocket

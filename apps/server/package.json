@@ -9,8 +9,8 @@
         "start": "node src/index.js",
         "lint": "eslint src/",
         "test": "jest",
-        "test:unit": "jest --testPathPattern=unit",
-        "test:integration": "jest --testPathPattern=integration",
+        "test:unit": "jest tests/unit",
+        "test:integration": "jest tests/integration",
         "clean": "rm -rf dist node_modules"
     },
     "dependencies": {
