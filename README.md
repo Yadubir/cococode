@@ -43,6 +43,24 @@ The project is currently in the advanced collaboration phase, focusing on real-t
 - **Sidebar Integration**: Unified communication tools in the workspace UI.
 - **Terminal Sync**: Synchronized terminal document state across collaborators.
 
+## Database Schema
+
+The backend uses **PostgreSQL** with 6 tables. The ER diagram below shows all tables, fields, and relationships:
+
+![ER Diagram — CocoCode Database](docs/diagrams/er-db-light.svg)
+
+> **Source schema:** [`apps/server/src/services/database.js`](apps/server/src/services/database.js)  
+> **Editable diagram:** [`docs/diagrams/er-db-light.drawio`](docs/diagrams/er-db-light.drawio) (open with [diagrams.net](https://app.diagrams.net/))
+
+| Table | Description |
+|---|---|
+| `users` | Registered accounts (UUID PK, unique email) |
+| `workspaces` | Collaborative workspaces (FK: `owner_id → users`) |
+| `workspace_members` | Join table for workspace ↔ user membership (CASCADE) |
+| `files` | Files within a workspace (FK: `workspace_id`, `created_by`) |
+| `workspace_invites` | Invite links with expiry & usage limits |
+| `workspace_messages` | Chat messages per workspace (user_id nullable ON DELETE SET NULL) |
+
 ## Project Structure
 
 ```

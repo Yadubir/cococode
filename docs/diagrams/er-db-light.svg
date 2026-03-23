@@ -1,0 +1,269 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1180 790" width="1180" height="790">
+<defs>
+  <marker id="arrow" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+    <polygon points="0 0, 9 3.5, 0 7" fill="#4b5563"/>
+  </marker>
+  <marker id="arrowNull" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+    <polygon points="0 0, 9 3.5, 0 7" fill="#9ca3af"/>
+  </marker>
+</defs>
+<rect width="1180" height="790" fill="#eef2f7"/>
+<text x="590" y="33" text-anchor="middle" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="20" font-weight="700" fill="#0f172a">CocoCode — Database Schema (ER Diagram)</text>
+<text x="590" y="51" text-anchor="middle" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" fill="#475569">apps/server/src/services/database.js</text>
+<rect x="20" y="64" width="1140" height="690" rx="14" fill="#f8fbff" stroke="#90b4d8" stroke-width="1.5" stroke-dasharray="6,3"/>
+<rect x="34" y="50" width="210" height="27" rx="7" fill="#2563eb"/>
+<text x="139" y="72" text-anchor="middle" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="600" fill="white">&#128024; PostgreSQL Database</text>
+<rect x="1010" y="756" width="20" height="14" rx="3" fill="#9ca3af"/>
+<text x="1020" y="767" text-anchor="middle" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="8.5" font-weight="700" fill="white">–</text>
+<text x="1036" y="767" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#475569">Nullable FK</text>
+<rect x="870" y="756" width="20" height="14" rx="3" fill="#4b5563"/>
+<text x="880" y="767" text-anchor="middle" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="8.5" font-weight="700" fill="white">—</text>
+<text x="896" y="767" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#475569">Relationship</text>
+<rect x="730" y="756" width="20" height="14" rx="3" fill="#0891b2"/>
+<text x="740" y="767" text-anchor="middle" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="8.5" font-weight="700" fill="white">UQ</text>
+<text x="756" y="767" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#475569">Unique</text>
+<rect x="590" y="756" width="20" height="14" rx="3" fill="#7c3aed"/>
+<text x="600" y="767" text-anchor="middle" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="8.5" font-weight="700" fill="white">FK</text>
+<text x="616" y="767" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#475569">Foreign Key</text>
+<rect x="450" y="756" width="20" height="14" rx="3" fill="#b45309"/>
+<text x="460" y="767" text-anchor="middle" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="8.5" font-weight="700" fill="white">PK</text>
+<text x="476" y="767" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#475569">Primary Key</text>
+<path d="M 280.0,136.0 L 360.0,136.0 L 360.0,182.0 L 440.0,182.0" fill="none" stroke="#4b5563" stroke-width="1.6"  marker-end="url(#arrow)"/>
+<rect x="346.0" y="138.0" width="28" height="13" rx="3" fill="white" opacity="0.88"/>
+<text x="360.0" y="148.0" text-anchor="middle" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="9.5" font-weight="600" fill="#4b5563">1→N</text>
+<text x="262.7" y="131.0" text-anchor="middle" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" font-weight="700" fill="#4b5563">1</text>
+<text x="422.7" y="177.0" text-anchor="middle" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" font-weight="700" fill="#4b5563">N</text>
+<path d="M 160.0,361.0 L 160.0,436.5 L 40.0,436.5 L 40.0,512.0" fill="none" stroke="#4b5563" stroke-width="1.6"  marker-end="url(#arrow)"/>
+<rect x="86.0" y="415.5" width="28" height="13" rx="3" fill="white" opacity="0.88"/>
+<text x="100.0" y="425.5" text-anchor="middle" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="9.5" font-weight="600" fill="#4b5563">1→N</text>
+<text x="171.2" y="346.9" text-anchor="middle" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" font-weight="700" fill="#4b5563">1</text>
+<text x="51.2" y="497.9" text-anchor="middle" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" font-weight="700" fill="#4b5563">N</text>
+<path d="M 560.0,246.0 L 363.8,246.0 L 363.8,420.0 L 167.5,420.0" fill="none" stroke="#4b5563" stroke-width="1.6"  marker-end="url(#arrow)"/>
+<rect x="349.75" y="312.0" width="28" height="13" rx="3" fill="white" opacity="0.88"/>
+<text x="363.75" y="322.0" text-anchor="middle" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="9.5" font-weight="600" fill="#4b5563">1→N</text>
+<text x="576.5" y="238.7" text-anchor="middle" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" font-weight="700" fill="#4b5563">1</text>
+<text x="184.0" y="412.7" text-anchor="middle" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" font-weight="700" fill="#4b5563">N</text>
+<path d="M 680.0,136.0 L 775.0,136.0 L 775.0,159.0 L 870.0,159.0" fill="none" stroke="#4b5563" stroke-width="1.6"  marker-end="url(#arrow)"/>
+<rect x="761.0" y="126.5" width="28" height="13" rx="3" fill="white" opacity="0.88"/>
+<text x="775.0" y="136.5" text-anchor="middle" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="9.5" font-weight="600" fill="#4b5563">1→N</text>
+<text x="662.1" y="133.8" text-anchor="middle" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" font-weight="700" fill="#4b5563">1</text>
+<text x="852.1" y="156.8" text-anchor="middle" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" font-weight="700" fill="#4b5563">N</text>
+<path d="M 280.0,136.0 L 575.0,136.0 L 575.0,297.0 L 870.0,297.0" fill="none" stroke="#4b5563" stroke-width="1.6"  marker-end="url(#arrow)"/>
+<rect x="561.0" y="195.5" width="28" height="13" rx="3" fill="white" opacity="0.88"/>
+<text x="575.0" y="205.5" text-anchor="middle" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="9.5" font-weight="600" fill="#4b5563">1→N</text>
+<text x="262.6" y="131.3" text-anchor="middle" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" font-weight="700" fill="#4b5563">1</text>
+<text x="852.6" y="292.3" text-anchor="middle" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" font-weight="700" fill="#4b5563">N</text>
+<path d="M 560.0,246.0 L 560.0,333.0 L 587.5,333.0 L 587.5,420.0" fill="none" stroke="#4b5563" stroke-width="1.6"  marker-end="url(#arrow)"/>
+<rect x="559.75" y="312.0" width="28" height="13" rx="3" fill="white" opacity="0.88"/>
+<text x="573.75" y="322.0" text-anchor="middle" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="9.5" font-weight="600" fill="#4b5563">1→N</text>
+<text x="557.2" y="228.2" text-anchor="middle" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" font-weight="700" fill="#4b5563">1</text>
+<text x="584.7" y="402.2" text-anchor="middle" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" font-weight="700" fill="#4b5563">N</text>
+<path d="M 280.0,136.0 L 280.0,335.5 L 455.0,335.5 L 455.0,535.0" fill="none" stroke="#4b5563" stroke-width="1.6"  marker-end="url(#arrow)"/>
+<rect x="353.5" y="314.5" width="28" height="13" rx="3" fill="white" opacity="0.88"/>
+<text x="367.5" y="324.5" text-anchor="middle" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="9.5" font-weight="600" fill="#4b5563">1→N</text>
+<text x="272.8" y="119.5" text-anchor="middle" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" font-weight="700" fill="#4b5563">1</text>
+<text x="447.8" y="518.5" text-anchor="middle" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" font-weight="700" fill="#4b5563">N</text>
+<path d="M 680.0,136.0 L 680.0,312.5 L 870.0,312.5 L 870.0,489.0" fill="none" stroke="#4b5563" stroke-width="1.6"  marker-end="url(#arrow)"/>
+<rect x="761.0" y="291.5" width="28" height="13" rx="3" fill="white" opacity="0.88"/>
+<text x="775.0" y="301.5" text-anchor="middle" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="9.5" font-weight="600" fill="#4b5563">1→N</text>
+<text x="671.5" y="120.2" text-anchor="middle" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" font-weight="700" fill="#4b5563">1</text>
+<text x="861.5" y="473.2" text-anchor="middle" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" font-weight="700" fill="#4b5563">N</text>
+<path d="M 160.0,361.0 L 515.0,361.0 L 515.0,512.0 L 870.0,512.0" fill="none" stroke="#9ca3af" stroke-width="1.6" stroke-dasharray="5,3" marker-end="url(#arrowNull)"/>
+<rect x="499.0" y="415.5" width="32" height="13" rx="3" fill="white" opacity="0.88"/>
+<text x="515.0" y="425.5" text-anchor="middle" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="9.5" font-weight="600" fill="#9ca3af">0..N</text>
+<text x="142.4" y="357.3" text-anchor="middle" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" font-weight="700" fill="#9ca3af">1</text>
+<text x="852.4" y="508.3" text-anchor="middle" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" font-weight="700" fill="#9ca3af">0..N</text>
+<rect x="44" y="94" width="240" height="271" rx="9" fill="rgba(15,23,42,0.10)"/>
+<rect x="40" y="90" width="240" height="271" rx="9" fill="#ffffff" stroke="#93c5fd" stroke-width="1.5"/>
+<rect x="40" y="90" width="240" height="35" rx="9" fill="#1e40af"/>
+<rect x="40" y="116" width="240" height="9" fill="#1e40af"/>
+<text x="160" y="116" text-anchor="middle" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11.5" font-weight="700" fill="white" letter-spacing="0.4">USERS</text>
+<rect x="41" y="125" width="238" height="23" fill="#fef9c3"/>
+<rect x="46" y="129" width="20" height="14" rx="3" fill="#b45309"/>
+<text x="56" y="139" text-anchor="middle" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="8.5" font-weight="700" fill="white">PK</text>
+<text x="71" y="142" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" fill="#374151">id</text>
+<text x="273" y="142" text-anchor="end" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#6b7280" font-style="italic">UUID</text>
+<line x1="46" y1="148" x2="274" y2="148" stroke="#e5e7eb" stroke-width="0.5"/>
+<rect x="46" y="152" width="20" height="14" rx="3" fill="#0891b2"/>
+<text x="56" y="162" text-anchor="middle" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="8.5" font-weight="700" fill="white">UQ</text>
+<text x="71" y="165" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" fill="#374151">email</text>
+<text x="273" y="165" text-anchor="end" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#6b7280" font-style="italic">VARCHAR</text>
+<line x1="46" y1="171" x2="274" y2="171" stroke="#e5e7eb" stroke-width="0.5"/>
+<text x="50" y="188" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" fill="#374151">password_hash</text>
+<text x="273" y="188" text-anchor="end" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#6b7280" font-style="italic">VARCHAR</text>
+<line x1="46" y1="194" x2="274" y2="194" stroke="#e5e7eb" stroke-width="0.5"/>
+<text x="50" y="211" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" fill="#374151">name</text>
+<text x="273" y="211" text-anchor="end" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#6b7280" font-style="italic">VARCHAR</text>
+<line x1="46" y1="217" x2="274" y2="217" stroke="#e5e7eb" stroke-width="0.5"/>
+<text x="50" y="234" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" fill="#374151">role</text>
+<text x="273" y="234" text-anchor="end" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#6b7280" font-style="italic">VARCHAR</text>
+<line x1="46" y1="240" x2="274" y2="240" stroke="#e5e7eb" stroke-width="0.5"/>
+<text x="50" y="257" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" fill="#374151">avatar</text>
+<text x="273" y="257" text-anchor="end" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#6b7280" font-style="italic">VARCHAR</text>
+<line x1="46" y1="263" x2="274" y2="263" stroke="#e5e7eb" stroke-width="0.5"/>
+<text x="50" y="280" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" fill="#374151">settings</text>
+<text x="273" y="280" text-anchor="end" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#6b7280" font-style="italic">JSONB</text>
+<line x1="46" y1="286" x2="274" y2="286" stroke="#e5e7eb" stroke-width="0.5"/>
+<text x="50" y="303" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" fill="#374151">created_at</text>
+<text x="273" y="303" text-anchor="end" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#6b7280" font-style="italic">TIMESTAMP</text>
+<line x1="46" y1="309" x2="274" y2="309" stroke="#e5e7eb" stroke-width="0.5"/>
+<text x="50" y="326" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" fill="#374151">updated_at</text>
+<text x="273" y="326" text-anchor="end" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#6b7280" font-style="italic">TIMESTAMP</text>
+<line x1="46" y1="332" x2="274" y2="332" stroke="#e5e7eb" stroke-width="0.5"/>
+<text x="50" y="349" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" fill="#374151">last_login_at</text>
+<text x="273" y="349" text-anchor="end" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#6b7280" font-style="italic">TIMESTAMP</text>
+<rect x="444" y="94" width="240" height="156" rx="9" fill="rgba(15,23,42,0.10)"/>
+<rect x="440" y="90" width="240" height="156" rx="9" fill="#ffffff" stroke="#93c5fd" stroke-width="1.5"/>
+<rect x="440" y="90" width="240" height="35" rx="9" fill="#1e40af"/>
+<rect x="440" y="116" width="240" height="9" fill="#1e40af"/>
+<text x="560" y="116" text-anchor="middle" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11.5" font-weight="700" fill="white" letter-spacing="0.4">WORKSPACES</text>
+<rect x="441" y="125" width="238" height="23" fill="#fef9c3"/>
+<rect x="446" y="129" width="20" height="14" rx="3" fill="#b45309"/>
+<text x="456" y="139" text-anchor="middle" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="8.5" font-weight="700" fill="white">PK</text>
+<text x="471" y="142" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" fill="#374151">id</text>
+<text x="673" y="142" text-anchor="end" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#6b7280" font-style="italic">UUID</text>
+<line x1="446" y1="148" x2="674" y2="148" stroke="#e5e7eb" stroke-width="0.5"/>
+<text x="450" y="165" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" fill="#374151">name</text>
+<text x="673" y="165" text-anchor="end" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#6b7280" font-style="italic">VARCHAR</text>
+<line x1="446" y1="171" x2="674" y2="171" stroke="#e5e7eb" stroke-width="0.5"/>
+<rect x="446" y="175" width="20" height="14" rx="3" fill="#7c3aed"/>
+<text x="456" y="185" text-anchor="middle" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="8.5" font-weight="700" fill="white">FK</text>
+<text x="471" y="188" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" fill="#7c3aed">owner_id</text>
+<text x="673" y="188" text-anchor="end" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#6b7280" font-style="italic">UUID</text>
+<line x1="446" y1="194" x2="674" y2="194" stroke="#e5e7eb" stroke-width="0.5"/>
+<text x="450" y="211" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" fill="#374151">settings</text>
+<text x="673" y="211" text-anchor="end" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#6b7280" font-style="italic">JSONB</text>
+<line x1="446" y1="217" x2="674" y2="217" stroke="#e5e7eb" stroke-width="0.5"/>
+<text x="450" y="234" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" fill="#374151">created_at</text>
+<text x="673" y="234" text-anchor="end" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#6b7280" font-style="italic">TIMESTAMP</text>
+<rect x="874" y="94" width="265" height="271" rx="9" fill="rgba(15,23,42,0.10)"/>
+<rect x="870" y="90" width="265" height="271" rx="9" fill="#ffffff" stroke="#93c5fd" stroke-width="1.5"/>
+<rect x="870" y="90" width="265" height="35" rx="9" fill="#1e40af"/>
+<rect x="870" y="116" width="265" height="9" fill="#1e40af"/>
+<text x="1002" y="116" text-anchor="middle" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11.5" font-weight="700" fill="white" letter-spacing="0.4">FILES</text>
+<rect x="871" y="125" width="263" height="23" fill="#fef9c3"/>
+<rect x="876" y="129" width="20" height="14" rx="3" fill="#b45309"/>
+<text x="886" y="139" text-anchor="middle" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="8.5" font-weight="700" fill="white">PK</text>
+<text x="901" y="142" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" fill="#374151">id</text>
+<text x="1128" y="142" text-anchor="end" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#6b7280" font-style="italic">UUID</text>
+<line x1="876" y1="148" x2="1129" y2="148" stroke="#e5e7eb" stroke-width="0.5"/>
+<rect x="876" y="152" width="20" height="14" rx="3" fill="#7c3aed"/>
+<text x="886" y="162" text-anchor="middle" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="8.5" font-weight="700" fill="white">FK</text>
+<text x="901" y="165" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" fill="#7c3aed">workspace_id</text>
+<text x="1128" y="165" text-anchor="end" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#6b7280" font-style="italic">UUID</text>
+<line x1="876" y1="171" x2="1129" y2="171" stroke="#e5e7eb" stroke-width="0.5"/>
+<text x="880" y="188" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" fill="#374151">path</text>
+<text x="1128" y="188" text-anchor="end" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#6b7280" font-style="italic">VARCHAR</text>
+<line x1="876" y1="194" x2="1129" y2="194" stroke="#e5e7eb" stroke-width="0.5"/>
+<text x="880" y="211" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" fill="#374151">name</text>
+<text x="1128" y="211" text-anchor="end" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#6b7280" font-style="italic">VARCHAR</text>
+<line x1="876" y1="217" x2="1129" y2="217" stroke="#e5e7eb" stroke-width="0.5"/>
+<text x="880" y="234" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" fill="#374151">type</text>
+<text x="1128" y="234" text-anchor="end" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#6b7280" font-style="italic">VARCHAR</text>
+<line x1="876" y1="240" x2="1129" y2="240" stroke="#e5e7eb" stroke-width="0.5"/>
+<text x="880" y="257" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" fill="#374151">content</text>
+<text x="1128" y="257" text-anchor="end" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#6b7280" font-style="italic">TEXT</text>
+<line x1="876" y1="263" x2="1129" y2="263" stroke="#e5e7eb" stroke-width="0.5"/>
+<text x="880" y="280" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" fill="#374151">size</text>
+<text x="1128" y="280" text-anchor="end" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#6b7280" font-style="italic">INTEGER</text>
+<line x1="876" y1="286" x2="1129" y2="286" stroke="#e5e7eb" stroke-width="0.5"/>
+<rect x="876" y="290" width="20" height="14" rx="3" fill="#7c3aed"/>
+<text x="886" y="300" text-anchor="middle" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="8.5" font-weight="700" fill="white">FK</text>
+<text x="901" y="303" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" fill="#7c3aed">created_by</text>
+<text x="1128" y="303" text-anchor="end" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#6b7280" font-style="italic">UUID</text>
+<line x1="876" y1="309" x2="1129" y2="309" stroke="#e5e7eb" stroke-width="0.5"/>
+<text x="880" y="326" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" fill="#374151">created_at</text>
+<text x="1128" y="326" text-anchor="end" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#6b7280" font-style="italic">TIMESTAMP</text>
+<line x1="876" y1="332" x2="1129" y2="332" stroke="#e5e7eb" stroke-width="0.5"/>
+<text x="880" y="349" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" fill="#374151">updated_at</text>
+<text x="1128" y="349" text-anchor="end" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#6b7280" font-style="italic">TIMESTAMP</text>
+<rect x="44" y="424" width="255" height="156" rx="9" fill="rgba(15,23,42,0.10)"/>
+<rect x="40" y="420" width="255" height="156" rx="9" fill="#ffffff" stroke="#93c5fd" stroke-width="1.5"/>
+<rect x="40" y="420" width="255" height="35" rx="9" fill="#1e40af"/>
+<rect x="40" y="446" width="255" height="9" fill="#1e40af"/>
+<text x="167" y="446" text-anchor="middle" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11.5" font-weight="700" fill="white" letter-spacing="0.4">WORKSPACE MEMBERS</text>
+<rect x="41" y="455" width="253" height="23" fill="#fef9c3"/>
+<rect x="46" y="459" width="20" height="14" rx="3" fill="#b45309"/>
+<text x="56" y="469" text-anchor="middle" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="8.5" font-weight="700" fill="white">PK</text>
+<text x="71" y="472" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" fill="#374151">id</text>
+<text x="288" y="472" text-anchor="end" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#6b7280" font-style="italic">UUID</text>
+<line x1="46" y1="478" x2="289" y2="478" stroke="#e5e7eb" stroke-width="0.5"/>
+<rect x="46" y="482" width="20" height="14" rx="3" fill="#7c3aed"/>
+<text x="56" y="492" text-anchor="middle" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="8.5" font-weight="700" fill="white">FK</text>
+<text x="71" y="495" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" fill="#7c3aed">workspace_id</text>
+<text x="288" y="495" text-anchor="end" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#6b7280" font-style="italic">UUID</text>
+<line x1="46" y1="501" x2="289" y2="501" stroke="#e5e7eb" stroke-width="0.5"/>
+<rect x="46" y="505" width="20" height="14" rx="3" fill="#7c3aed"/>
+<text x="56" y="515" text-anchor="middle" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="8.5" font-weight="700" fill="white">FK</text>
+<text x="71" y="518" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" fill="#7c3aed">user_id</text>
+<text x="288" y="518" text-anchor="end" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#6b7280" font-style="italic">UUID</text>
+<line x1="46" y1="524" x2="289" y2="524" stroke="#e5e7eb" stroke-width="0.5"/>
+<text x="50" y="541" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" fill="#374151">role</text>
+<text x="288" y="541" text-anchor="end" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#6b7280" font-style="italic">VARCHAR</text>
+<line x1="46" y1="547" x2="289" y2="547" stroke="#e5e7eb" stroke-width="0.5"/>
+<text x="50" y="564" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" fill="#374151">joined_at</text>
+<text x="288" y="564" text-anchor="end" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#6b7280" font-style="italic">TIMESTAMP</text>
+<rect x="459" y="424" width="265" height="225" rx="9" fill="rgba(15,23,42,0.10)"/>
+<rect x="455" y="420" width="265" height="225" rx="9" fill="#ffffff" stroke="#93c5fd" stroke-width="1.5"/>
+<rect x="455" y="420" width="265" height="35" rx="9" fill="#1e40af"/>
+<rect x="455" y="446" width="265" height="9" fill="#1e40af"/>
+<text x="587" y="446" text-anchor="middle" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11.5" font-weight="700" fill="white" letter-spacing="0.4">WORKSPACE INVITES</text>
+<rect x="456" y="455" width="263" height="23" fill="#fef9c3"/>
+<rect x="461" y="459" width="20" height="14" rx="3" fill="#b45309"/>
+<text x="471" y="469" text-anchor="middle" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="8.5" font-weight="700" fill="white">PK</text>
+<text x="486" y="472" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" fill="#374151">id</text>
+<text x="713" y="472" text-anchor="end" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#6b7280" font-style="italic">UUID</text>
+<line x1="461" y1="478" x2="714" y2="478" stroke="#e5e7eb" stroke-width="0.5"/>
+<rect x="461" y="482" width="20" height="14" rx="3" fill="#7c3aed"/>
+<text x="471" y="492" text-anchor="middle" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="8.5" font-weight="700" fill="white">FK</text>
+<text x="486" y="495" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" fill="#7c3aed">workspace_id</text>
+<text x="713" y="495" text-anchor="end" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#6b7280" font-style="italic">UUID</text>
+<line x1="461" y1="501" x2="714" y2="501" stroke="#e5e7eb" stroke-width="0.5"/>
+<rect x="461" y="505" width="20" height="14" rx="3" fill="#0891b2"/>
+<text x="471" y="515" text-anchor="middle" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="8.5" font-weight="700" fill="white">UQ</text>
+<text x="486" y="518" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" fill="#374151">invite_code</text>
+<text x="713" y="518" text-anchor="end" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#6b7280" font-style="italic">VARCHAR</text>
+<line x1="461" y1="524" x2="714" y2="524" stroke="#e5e7eb" stroke-width="0.5"/>
+<rect x="461" y="528" width="20" height="14" rx="3" fill="#7c3aed"/>
+<text x="471" y="538" text-anchor="middle" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="8.5" font-weight="700" fill="white">FK</text>
+<text x="486" y="541" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" fill="#7c3aed">created_by</text>
+<text x="713" y="541" text-anchor="end" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#6b7280" font-style="italic">UUID</text>
+<line x1="461" y1="547" x2="714" y2="547" stroke="#e5e7eb" stroke-width="0.5"/>
+<text x="465" y="564" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" fill="#374151">expires_at</text>
+<text x="713" y="564" text-anchor="end" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#6b7280" font-style="italic">TIMESTAMP</text>
+<line x1="461" y1="570" x2="714" y2="570" stroke="#e5e7eb" stroke-width="0.5"/>
+<text x="465" y="587" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" fill="#374151">max_uses</text>
+<text x="713" y="587" text-anchor="end" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#6b7280" font-style="italic">INTEGER</text>
+<line x1="461" y1="593" x2="714" y2="593" stroke="#e5e7eb" stroke-width="0.5"/>
+<text x="465" y="610" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" fill="#374151">use_count</text>
+<text x="713" y="610" text-anchor="end" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#6b7280" font-style="italic">INTEGER</text>
+<line x1="461" y1="616" x2="714" y2="616" stroke="#e5e7eb" stroke-width="0.5"/>
+<text x="465" y="633" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" fill="#374151">created_at</text>
+<text x="713" y="633" text-anchor="end" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#6b7280" font-style="italic">TIMESTAMP</text>
+<rect x="874" y="424" width="265" height="156" rx="9" fill="rgba(15,23,42,0.10)"/>
+<rect x="870" y="420" width="265" height="156" rx="9" fill="#ffffff" stroke="#93c5fd" stroke-width="1.5"/>
+<rect x="870" y="420" width="265" height="35" rx="9" fill="#1e40af"/>
+<rect x="870" y="446" width="265" height="9" fill="#1e40af"/>
+<text x="1002" y="446" text-anchor="middle" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11.5" font-weight="700" fill="white" letter-spacing="0.4">WORKSPACE MESSAGES</text>
+<rect x="871" y="455" width="263" height="23" fill="#fef9c3"/>
+<rect x="876" y="459" width="20" height="14" rx="3" fill="#b45309"/>
+<text x="886" y="469" text-anchor="middle" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="8.5" font-weight="700" fill="white">PK</text>
+<text x="901" y="472" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" fill="#374151">id</text>
+<text x="1128" y="472" text-anchor="end" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#6b7280" font-style="italic">SERIAL</text>
+<line x1="876" y1="478" x2="1129" y2="478" stroke="#e5e7eb" stroke-width="0.5"/>
+<rect x="876" y="482" width="20" height="14" rx="3" fill="#7c3aed"/>
+<text x="886" y="492" text-anchor="middle" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="8.5" font-weight="700" fill="white">FK</text>
+<text x="901" y="495" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" fill="#7c3aed">workspace_id</text>
+<text x="1128" y="495" text-anchor="end" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#6b7280" font-style="italic">UUID</text>
+<line x1="876" y1="501" x2="1129" y2="501" stroke="#e5e7eb" stroke-width="0.5"/>
+<rect x="876" y="505" width="20" height="14" rx="3" fill="#7c3aed"/>
+<text x="886" y="515" text-anchor="middle" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="8.5" font-weight="700" fill="white">FK</text>
+<text x="901" y="518" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" fill="#7c3aed">user_id</text>
+<text x="1128" y="518" text-anchor="end" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#6b7280" font-style="italic">UUID</text>
+<line x1="876" y1="524" x2="1129" y2="524" stroke="#e5e7eb" stroke-width="0.5"/>
+<text x="880" y="541" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" fill="#374151">content</text>
+<text x="1128" y="541" text-anchor="end" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#6b7280" font-style="italic">TEXT</text>
+<line x1="876" y1="547" x2="1129" y2="547" stroke="#e5e7eb" stroke-width="0.5"/>
+<text x="880" y="564" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" fill="#374151">created_at</text>
+<text x="1128" y="564" text-anchor="end" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#6b7280" font-style="italic">TIMESTAMP</text>
+</svg>
