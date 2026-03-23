@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
     Plus,
@@ -21,6 +21,7 @@ import AIAssistant from '../ai/AIAssistant';
 
 function Dashboard() {
     const navigate = useNavigate();
+    const location = useLocation();
     const queryClient = useQueryClient();
     const { user } = useAuthStore();
     const [showNewModal, setShowNewModal] = useState(false);
@@ -28,7 +29,19 @@ function Dashboard() {
     const [deleteModal, setDeleteModal] = useState({ show: false, workspaceId: null, workspaceName: '' });
     const [newWorkspaceName, setNewWorkspaceName] = useState('');
 
-    const isGithubLinked = new URLSearchParams(window.location.search).get('github_linked') || !!user?.settings?.githubToken;
+    const isGithubLinked = new URLSearchParams(location.search).get('github_linked') === 'true' || !!user?.settings?.githubToken;
+
+    // Refresh user data on mount to get latest settings (like githubToken)
+    useQuery({
+        queryKey: ['user', 'me'],
+        queryFn: async () => {
+            const response = await api.get('/auth/me');
+            const freshUser = response.data.data;
+            useAuthStore.setState({ user: freshUser });
+            return freshUser;
+        },
+        staleTime: 1000 * 60 * 5, // 5 mins
+    });
 
     const handleLinkGithub = () => {
         const token = useAuthStore.getState().token;
