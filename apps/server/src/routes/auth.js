@@ -233,7 +233,7 @@ router.post('/logout', authenticate, asyncHandler(async (req, res) => {
 router.get('/github', (req, res, next) => {
     // The frontend should pass the standard JWT in the `state` query param
     const { state } = req.query;
-    passport.authenticate('github', { 
+    passport.authenticate('github', {
         scope: ['repo', 'user:email'],
         state: state
     })(req, res, next);
@@ -244,33 +244,39 @@ router.get('/github', (req, res, next) => {
  * @desc    GitHub OAuth callback
  * @access  Public
  */
-router.get('/github/callback', 
-    passport.authenticate('github', { failureRedirect: 'http://localhost:5173/dashboard?error=github_auth_failed', session: false }),
+router.get('/github/callback', (req, res, next) => {
+    const frontendUrl = process.env.CORS_ORIGIN || 'http://localhost:5173';
+    passport.authenticate('github', {
+        failureRedirect: `${frontendUrl}/dashboard?error=github_auth_failed`,
+        session: false
+    })(req, res, next);
+},
     asyncHandler(async (req, res) => {
+        const frontendUrl = process.env.CORS_ORIGIN || 'http://localhost:5173';
         // The GitHub token and profile are in req.user due to our custom strategy
         const { accessToken } = req.user;
-        
+
         // We recover the original user's JWT from the state param that GitHub echoed back
         const token = req.query.state;
-        if (!token) return res.redirect('http://localhost:5173/dashboard?error=missing_state_token');
-        
+        if (!token) return res.redirect(`${frontendUrl}/dashboard?error=missing_state_token`);
+
         try {
             // Decode the token to get our User ID
             const jwt = require('jsonwebtoken');
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
             const user = await db.getUserById(decoded.id);
-            
-            if (!user) return res.redirect('http://localhost:5173/dashboard?error=user_not_found');
-            
+
+            if (!user) return res.redirect(`${frontendUrl}/dashboard?error=user_not_found`);
+
             // Save the GitHub Token in user settings
             const settings = { ...user.settings, githubToken: accessToken };
             await db.updateUser(user.id, { settings });
-            
+
             // Redirect back to frontend with success
-            res.redirect('http://localhost:5173/dashboard?github_linked=true');
+            res.redirect(`${frontendUrl}/dashboard?github_linked=true`);
         } catch (error) {
             console.error(error);
-            res.redirect('http://localhost:5173/dashboard?error=jwt_verification_failed');
+            res.redirect(`${frontendUrl}/dashboard?error=jwt_verification_failed`);
         }
     })
 );
