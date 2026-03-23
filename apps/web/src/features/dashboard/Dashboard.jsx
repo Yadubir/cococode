@@ -33,7 +33,8 @@ function Dashboard() {
     const handleLinkGithub = () => {
         const token = useAuthStore.getState().token;
         if (!token) return;
-        window.location.href = `http://localhost:3001/api/auth/github?state=${token}`;
+        const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+        window.location.href = `${baseUrl}/auth/github?state=${token}`;
     };
 
     // Fetch workspaces
@@ -218,7 +219,7 @@ function Dashboard() {
                             <h3 className="text-xl font-semibold">Delete Workspace?</h3>
                         </div>
                         <p className="text-editor-text mb-6">
-                            Are you sure you want to delete <span className="font-bold text-white">"{deleteModal.workspaceName}"</span>? 
+                            Are you sure you want to delete <span className="font-bold text-white">"{deleteModal.workspaceName}"</span>?
                             This action is permanent and will delete all files, chat history, and active sessions.
                         </p>
                         <div className="flex gap-3 justify-end">
